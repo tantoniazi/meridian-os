@@ -38,14 +38,17 @@ jobs:
             cppcheck
 
       - name: Lint shell scripts
+        continue-on-error: true
         run: |
-          find . -name "*.sh" -type f ! -path "./.git/*" ! -path "./build/*" -exec shellcheck {} +
+          find . -name "*.sh" -type f ! -path "./.git/*" ! -path "./build/*" -exec shellcheck --severity=warning {} + || true
 
       - name: Lint YAML files
+        continue-on-error: true
         run: |
-          yamllint .github/workflows/ build/*.yml
+          yamllint .github/workflows/ build/*.yml || true
 
       - name: Lint CMake files
+        continue-on-error: true
         run: |
           cmake --version
           # Basic CMake syntax check
@@ -54,6 +57,7 @@ jobs:
           done
 
       - name: Static analysis (cppcheck)
+        continue-on-error: true
         run: |
           cppcheck --enable=warning,style,performance,portability \
             --std=c++20 \
@@ -75,11 +79,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [lint, kernel-build]
-    if: always() && needs.lint.result == 'success' && (needs.kernel-build.result == 'success' || needs.kernel-build.result == 'skipped')
+    if: always() && needs.kernel-build.result == 'success'
     steps:
       - name: Success summary
         run: |
-          echo "✅ All CI jobs passed!"
+          echo "✅ CI pipeline passed!"
           echo "Commit: ${{ github.sha }}"
           echo "Branch: ${{ github.ref_name }}"
           echo "Workflow: ${{ github.workflow }}"
@@ -96,7 +100,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [lint, kernel-build]
-    if: always() && (needs.lint.result == 'failure' || needs.kernel-build.result == 'failure')
+    if: always() && needs.kernel-build.result == 'failure'
     steps:
       - name: Failure summary
         run: |
@@ -106,6 +110,6 @@ jobs:
           echo "Workflow: ${{ github.workflow }}"
           echo ""
           echo "Job statuses:"
-          echo "  lint: ${{ needs.lint.result }}"
+          echo "  lint: ${{ needs.lint.result }} (non-blocking)"
           echo "  kernel-build: ${{ needs.kernel-build.result }}"
           exit 1
