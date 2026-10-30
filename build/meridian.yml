@@ -1,0 +1,69 @@
+header:
+  version: 18
+  repos:
+    - name: debian
+      url: https://deb.debian.org/debian
+      branches: [trixie]
+    - name: meridian
+      url: https://github.com/meridian-os/meridian-os
+      path: build/packages
+      branches: [main]
+
+local_repo_dir: "build/repo"
+
+distro: meridian
+target: phone
+
+machine: n900
+arch: armhf
+
+packages:
+  - meridian-base
+  - meridian-kernel-omap3
+  - meridian-shell
+  - meridian-home
+  - meridian-settings
+  - meridian-dialer
+  - meridian-messages
+  - meridian-contacts
+  - meridian-camera
+  - meridian-browser
+  - meridian-file-manager
+  - meridian-terminal
+  - meridian-store
+  - flatpak
+  - ostree
+  - systemd
+  - pipewire
+  - wireplumber
+  - modemmanager
+  - network-manager
+  - bluez
+  - gpsd
+  - sensorfw
+  - libcamera
+  - libcamera-tools
+  - mesa
+  - mesa-vulkan-drivers
+  - vulkan-tools
+  - weston
+  - maliit-keyboard
+  - maliit-plugins
+  - kirigami-addons
+  - qt6-declarative
+  - qt6-quick3d
+  - qt6-multimedia
+  - gtk4
+  - libadwaita-1
+  - xwayland
+
+image:
+  type: ostree
+  bootloader: u-boot
+  rootfs:
+    size: 4G
+    filesystem: ext4
+  deploy:
+    - /ostree
+    - /var
+    - /home

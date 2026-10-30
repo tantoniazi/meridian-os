@@ -1,0 +1,319 @@
+# Meridian OS - Core package definitions
+# These are the base packages for the Meridian OS distribution
+
+# meridian-base - Core system package
+Package: meridian-base
+Version: 0.1.0
+Section: base
+Priority: required
+Architecture: any
+Maintainer: Meridian OS Team <team@meridian-os.org>
+Description: Meridian OS base system
+ This package provides the base system configuration for Meridian OS,
+ including system users, groups, basic directory structure, and
+ essential system configuration files.
+Depends: base-files, base-passwd, debianutils, systemd, systemd-sysv, 
+         libc6, libgcc-s1, libstdc++6, bash, coreutils, findutils,
+         grep, sed, gawk, diffutils, file, hostname, init-system-helpers,
+         lsb-release, mime-support, netbase, sensible-utils, sysvinit-utils,
+         udev, util-linux, adduser, passwd, login, shadow, sudo
+
+# meridian-release - OS identification
+Package: meridian-release
+Version: 0.1.0
+Section: base
+Priority: required
+Architecture: all
+Maintainer: Meridian OS Team <team@meridian-os.org>
+Description: Meridian OS release identification
+ Provides /etc/os-release and /etc/meridian-release with version
+ and identification information for Meridian OS.
+Files:
+ /etc/os-release
+ /etc/meridian-release
+ /etc/issue
+ /etc/issue.net
+
+# meridian-kernel-omap3 - OMAP3 kernel package
+Package: meridian-kernel-omap3
+Version: 6.6.0
+Section: kernel
+Priority: required
+Architecture: armhf
+Maintainer: Meridian OS Kernel Team <kernel@meridian-os.org>
+Description: Linux kernel 6.6 LTS for OMAP3 (N900/N9/N950)
+ This package provides the Linux kernel 6.6 LTS with OMAP3 support
+ for Nokia N900, N9, and N950 devices.
+ Includes device tree blobs for all supported OMAP3 devices.
+Depends: linux-base, initramfs-tools, kmod, linux-firmware
+Provides: linux-image-6.6.0-meridian-omap3
+Conflicts: linux-image-omap3, linux-image-n900
+
+# meridian-shell - Wayland compositor shell
+Package: meridian-shell
+Version: 0.1.0
+Section: x11
+Priority: required
+Architecture: any
+Maintainer: Meridian OS UI Team <ui@meridian-os.org>
+Description: Meridian Shell - Adaptive Wayland compositor
+ Meridian Shell is a libweston-based Wayland compositor providing
+ adaptive UI for phone, tablet, and desktop form factors.
+ Features gesture navigation, convergent UI, and Harmattan-inspired design.
+Depends: weston, libweston-13, libwayland-server0, libwayland-client0,
+         libinput10, libdrm2, libgbm1, libegl1, libgles2, libgl1,
+         maliit-keyboard, maliit-plugins, pipewire, wireplumber,
+         libxkbcommon0, libxkbregistry0, libxkbcommon-x11-0
+
+# meridian-home - Home screen
+Package: meridian-home
+Version: 0.1.0
+Section: x11
+Priority: required
+Architecture: any
+Maintainer: Meridian OS UI Team <ui@meridian-os.org>
+Description: Meridian Home - Adaptive home screen
+ Adaptive home screen with app grid, widgets, search, and
+ pivot navigation inspired by Harmattan.
+Depends: meridian-shell, qt6-base, qt6-declarative, qt6-quick3d,
+         kirigami-addons, qt6-quickcontrols2, qt6-svg,
+         libqt6core6, libqt6gui6, libqt6qml6, libqt6quick6,
+         libqt6widgets6
+
+# meridian-settings - Settings application
+Package: meridian-settings
+Version: 0.1.0
+Section: utils
+Priority: required
+Architecture: any
+Maintainer: Meridian OS UI Team <ui@meridian-os.org>
+Description: Meridian Settings - System settings application
+ Convergent settings application with Kirigami and GTK4 backends.
+ Covers all system settings: display, network, bluetooth, privacy, etc.
+Depends: kirigami-addons, qt6-base, qt6-declarative, gtk4, libadwaita-1,
+         modemmanager, network-manager, bluez, accounts-service,
+         upower, udisks2, libpam-systemd
+
+# meridian-dialer - Phone dialer
+Package: meridian-dialer
+Version: 0.1.0
+Section: comm
+Priority: required
+Architecture: any
+Maintainer: Meridian OS Apps Team <apps@meridian-os.org>
+Description: Meridian Dialer - Phone dialer with USSD support
+ Phone dialer with call log, contacts integration, USSD support,
+ and Harmattan-inspired UI.
+Depends: qt6-base, qt6-declarative, kirigami-addons, qt6-multimedia,
+         modemmanager, ofono, libcontacts, libkpeople, libkpeoplebackend
+
+# meridian-messages - SMS/MMS/RCS messaging
+Package: meridian-messages
+Version: 0.1.0
+Section: comm
+Priority: required
+Architecture: any
+Maintainer: Meridian OS Apps Team <apps@meridian-os.org>
+Description: Meridian Messages - SMS/MMS/RCS messaging
+ Messaging application with conversations, search, group chats,
+ and Harmattan Conversations UI.
+Depends: qt6-base, qt6-declarative, kirigami-addons, qt6-multimedia,
+         modemmanager, ofono, libkpeople, libkpeoplebackend
+
+# meridian-contacts - Contacts application
+Package: meridian-contacts
+Version: 0.1.0
+Section: comm
+Priority: required
+Architecture: any
+Maintainer: Meridian OS Apps Team <apps@meridian-os.org>
+Description: Meridian Contacts - Contacts management
+ Contacts application with VCard, CardDAV, local storage,
+ merge/split, and Maemo/Harmattan contact UI.
+Depends: qt6-base, qt6-declarative, kirigami-addons,
+         libkpeople, libkpeoplebackend, libkcontacts, libkcalendarcore
+
+# meridian-camera - Camera application
+Package: meridian-camera
+Version: 0.1.0
+Section: graphics
+Priority: optional
+Architecture: any
+Maintainer: Meridian OS Apps Team <apps@meridian-os.org>
+Description: Meridian Camera - Photo and video capture
+ Camera application with photo/video modes, gallery, and
+ libcamera + PipeWire integration.
+Depends: qt6-base, qt6-declarative, qt6-multimedia, kirigami-addons,
+         libcamera, libcamera-tools, pipewire, libpipewire-0.3
+
+# meridian-browser - Web browser
+Package: meridian-browser
+Version: 0.1.0
+Section: web
+Priority: optional
+Architecture: any
+Maintainer: Meridian OS Apps Team <apps@meridian-os.org>
+Description: Meridian Browser - Web browser with WebKitGTK
+ Web browser with tabs, reader mode, adblock, sync,
+ and MicroB compatibility shim for legacy Maemo apps.
+Depends: webkit2gtk-4.1, qt6-base, qt6-declarative, qt6-webengine,
+         kirigami-addons, qt6-webchannel, libwebkit2gtk-4.1-0
+
+# meridian-file-manager - File manager
+Package: meridian-file-manager
+Version: 0.1.0
+Section: utils
+Priority: optional
+Architecture: any
+Maintainer: Meridian OS Apps Team <apps@meridian-os.org>
+Description: Meridian Files - File manager
+ Dual GTK4 + Qt6 file manager with local, SFTP, SMB, MTP,
+ cloud storage, and Maemo 5 File Manager skin.
+Depends: gtk4, qt6-base, qt6-declarative, kirigami-addons,
+         gvfs, gvfs-backends, gvfs-fuse, libsoup-3.0, libsecret-1-0
+
+# meridian-terminal - Terminal emulator
+Package: meridian-terminal
+Version: 0.1.0
+Section: utils
+Priority: optional
+Architecture: any
+Maintainer: Meridian OS Apps Team <apps@meridian-os.org>
+Description: Meridian Terminal - Terminal emulator
+ Terminal with tabs, profiles, GPU acceleration, and
+ Maemo Terminal theme.
+Depends: vte-2.91, qt6-base, qt6-declarative, kirigami-addons,
+         libvte-2.91-0
+
+# meridian-store - App store frontend
+Package: meridian-store
+Version: 0.1.0
+Section: utils
+Priority: optional
+Architecture: any
+Maintainer: Meridian OS Apps Team <apps@meridian-os.org>
+Description: Meridian Store - Application store
+ Flatpak + native package frontend with Meridian Apps repo,
+ Flathub integration, and category browsing.
+Depends: flatpak, libflatpak0, libostree-1-1, qt6-base, qt6-declarative,
+         kirigami-addons, libappstream4, libappstreamqt2
+
+# maemo5-compat - Maemo 5 compatibility layer
+Package: maemo5-compat
+Version: 1.0.0
+Section: libs
+Priority: optional
+Architecture: armhf
+Maintainer: Meridian OS Compat Team <compat@meridian-os.org>
+Description: Maemo 5 (Fremantle) binary compatibility layer
+ Provides GTK+ 2.20, Hildon 2.20, and OSSO APIs for running
+ legacy N900 applications on Meridian.
+Depends: libc6 (>= 2.38), libglib2.0-0, libgtk2.0-0, libhildon2-0,
+         libosso1, libosso-abook1, libosso-gnomevfs2-0,
+         maemo5-theme-meridian, hildon-thumbnailer
+
+# harmattan-compat - Harmattan compatibility layer
+Package: harmattan-compat
+Version: 1.0.0
+Section: libs
+Priority: optional
+Architecture: armhf
+Maintainer: Meridian OS Compat Team <compat@meridian-os.org>
+Description: MeeGo/Harmattan binary compatibility layer
+ Provides Qt 4.8, QtQuick 1.1, and MeeGo Touch APIs for running
+ legacy N9 applications on Meridian.
+Depends: libc6 (>= 2.38), libqtcore4, libqtgui4, libqt4-declarative,
+         libqt4-network, libqt4-sql, libqt4-xml, libqt4-script,
+         libmeegotouch1, libmeegotouchcore1, libmeegotouchviews1,
+         libmeegotouchplugins1, harmattan-theme-meridian
+
+# plymouth-theme-meridian - Boot splash theme
+Package: plymouth-theme-meridian
+Version: 0.1.0
+Section: admin
+Priority: optional
+Architecture: all
+Maintainer: Meridian OS UI Team <ui@meridian-os.org>
+Description: Meridian OS Plymouth boot splash theme
+ Boot splash theme with Meridian logo and Harmattan-inspired animation.
+Depends: plymouth
+Provides: plymouth-theme
+
+# u-boot-meridian-n900 - U-Boot for N900
+Package: u-boot-meridian-n900
+Version: 2024.01
+Section: admin
+Priority: required
+Architecture: armhf
+Maintainer: Meridian OS Bootloader Team <bootloader@meridian-os.org>
+Description: U-Boot bootloader for Nokia N900
+ U-Boot bootloader with Meridian OS branding, OSTree support,
+ verified boot, and N900 hardware initialization.
+Depends: u-boot-tools
+Provides: u-boot
+Conflicts: u-boot-n900
+
+# u-boot-meridian-n9 - U-Boot for N9/N950
+Package: u-boot-meridian-n9
+Version: 2024.01
+Section: admin
+Priority: required
+Architecture: armhf
+Maintainer: Meridian OS Bootloader Team <bootloader@meridian-os.org>
+Description: U-Boot bootloader for Nokia N9/N950
+ U-Boot bootloader with Meridian OS branding, OSTree support,
+ verified boot, and N9/N950 hardware initialization.
+Depends: u-boot-tools
+Provides: u-boot
+Conflicts: u-boot-n9
+
+# flash-kernel - Kernel flash utility
+Package: flash-kernel
+Version: 1.0.0
+Section: admin
+Priority: required
+Architecture: any
+Maintainer: Meridian OS Bootloader Team <bootloader@meridian-os.org>
+Description: Flash kernel to boot partition
+ Utility to flash kernel, initramfs, and device tree to boot partition
+ with support for OSTree and multiple device types.
+Depends: u-boot-tools, mtd-utils, mtd-utils-ubifs, dtc, flash-kernel-db
+
+# sensorfw - Sensor framework
+Package: sensorfw
+Version: 1.0.0
+Section: libs
+Priority: optional
+Architecture: any
+Maintainer: Meridian OS Middleware Team <middleware@meridian-os.org>
+Description: Sensor framework (from Harmattan)
+ Sensor framework with D-Bus API, IIO backend, calibration,
+ and sensor fusion (AHRS). Ported from Harmattan sensorfw.
+Depends: libc6 (>= 2.38), libglib2.0-0, libdbus-1-3, libiio0,
+         libqt6core6, libqt6dbus6
+
+# ofono - Telephony stack
+Package: ofono
+Version: 1.33
+Section: comm
+Priority: required
+Architecture: any
+Maintainer: Meridian OS Middleware Team <middleware@meridian-os.org>
+Description: Open Source Telephony - ofono fork for Meridian
+ ofono with OMAP3 HSI support for N900, USB CDC/ACM for N9,
+ and QRTR/QMI for modern devices.
+Depends: libc6 (>= 2.38), libglib2.0-0, libdbus-1-3, libudev1,
+         libmm-glib0, mobile-broadband-provider-info, usb-modeswitch
+
+# sensorfw - Sensor framework (duplicate entry fixed)
+Package: sensorfw
+Version: 1.0.0
+Section: libs
+Priority: optional
+Architecture: any
+Maintainer: Meridian OS Middleware Team <middleware@meridian-os.org>
+Description: Sensor framework (from Harmattan)
+ Sensor framework with D-Bus API, IIO backend, calibration,
+ and sensor fusion (AHRS). Ported from Harmattan sensorfw.
+Depends: libc6 (>= 2.38), libglib2.0-0, libdbus-1-3, libiio0,
+         libqt6core6, libqt6dbus6

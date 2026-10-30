@@ -1,0 +1,129 @@
+# Meridian OS - Udev Rules for Hardware Kill Switches
+# Handles hardware kill switch events for Librem 5, PinePhone, and other devices
+
+# Librem 5 hardware kill switches
+# Modem kill switch
+ACTION=="change", SUBSYSTEM=="switch", KERNEL=="modem", RUN+="/usr/lib/meridian/killswitch-handler modem %s"
+
+# WiFi/BT kill switch
+ACTION=="change", SUBSYSTEM=="switch", KERNEL=="wifi", RUN+="/usr/lib/meridian/killswitch-handler wifi %s"
+ACTION=="change", SUBSYSTEM=="switch", KERNEL=="bluetooth", RUN+="/usr/lib/meridian/killswitch-handler bluetooth %s"
+
+# Camera kill switch
+ACTION=="change", SUBSYSTEM=="switch", KERNEL=="camera", RUN+="/usr/lib/meridian/killswitch-handler camera %s"
+
+# Microphone kill switch
+ACTION=="change", SUBSYSTEM=="switch", KERNEL=="microphone", RUN+="/usr/lib/meridian/killswitch-handler microphone %s"
+
+# PinePhone kill switches (if different GPIO)
+# Modem kill switch (rear cover switch)
+ACTION=="change", SUBSYSTEM=="switch", KERNEL=="modem_kill", RUN+="/usr/lib/meridian/killswitch-handler modem %s"
+
+# WiFi/BT kill switch
+ACTION=="change", SUBSYSTEM=="switch", KERNEL=="wifi_kill", RUN+="/usr/lib/meridian/killswitch-handler wifi %s"
+ACTION=="change", SUBSYSTEM=="switch", KERNEL=="bluetooth_kill", RUN+="/usr/lib/meridian/killswitch-handler bluetooth %s"
+
+# Camera kill switch
+ACTION=="change", SUBSYSTEM=="switch", KERNEL=="camera_kill", RUN+="/usr/lib/meridian/killswitch-handler camera %s"
+
+# Microphone kill switch
+ACTION=="change", SUBSYSTEM=="switch", KERNEL=="mic_kill", RUN+="/usr/lib/meridian/killswitch-handler microphone %s"
+
+# Generic kill switches (by name matching)
+ACTION=="change", SUBSYSTEM=="switch", ATTR{name}=="*modem*", RUN+="/usr/lib/meridian/killswitch-handler modem %s"
+ACTION=="change", SUBSYSTEM=="switch", ATTR{name}=="*wifi*", RUN+="/usr/lib/meridian/killswitch-handler wifi %s"
+ACTION=="change", SUBSYSTEM=="switch", ATTR{name}=="*bluetooth*", RUN+="/usr/lib/meridian/killswitch-handler bluetooth %s"
+ACTION=="change", SUBSYSTEM=="switch", ATTR{name}=="*camera*", RUN+="/usr/lib/meridian/killswitch-handler camera %s"
+ACTION=="change", SUBSYSTEM=="switch", ATTR{name}=="*microphone*|*mic*", RUN+="/usr/lib/meridian/killswitch-handler microphone %s"
+
+# Hardware buttons (volume, power, etc.)
+ACTION=="change", SUBSYSTEM=="input", KERNEL=="event*", ATTR{name}=="*volume*", TAG+="power-switch"
+ACTION=="change", SUBSYSTEM=="input", KERNEL=="event*", ATTR{name}=="*power*", TAG+="power-switch"
+
+# Lid switch
+ACTION=="change", SUBSYSTEM=="switch", KERNEL=="lid", TAG+="power-switch"
+
+# Dock station
+ACTION=="change", SUBSYSTEM=="dock", TAG+="power-switch"
+
+# Charger
+ACTION=="change", SUBSYSTEM=="power_supply", KERNEL=="usb*", TAG+="power-supply"
+ACTION=="change", SUBSYSTEM=="power_supply", KERNEL=="battery*", TAG+="power-supply"
+ACTION=="change", SUBSYSTEM=="power_supply", KERNEL=="ac*", TAG+="power-supply"
+
+# Thermal zones
+ACTION=="change", SUBSYSTEM=="thermal", KERNEL=="thermal_zone*", RUN+="/usr/lib/meridian/thermal-handler %k %s"
+
+# Battery events
+ACTION=="change", SUBSYSTEM=="power_supply", KERNEL=="BAT*", RUN+="/usr/lib/meridian/battery-handler %k %s"
+
+# AC adapter
+ACTION=="change", SUBSYSTEM=="power_supply", KERNEL=="AC*", RUN+="/usr/lib/meridian/ac-handler %k %s"
+
+# USB devices
+ACTION=="add", SUBSYSTEM=="usb", RUN+="/usr/lib/meridian/usb-handler add %k"
+ACTION=="remove", SUBSYSTEM=="usb", RUN+="/usr/lib/meridian/usb-handler remove %k"
+
+# Bluetooth devices
+ACTION=="add", SUBSYSTEM=="bluetooth", RUN+="/usr/lib/meridian/bluetooth-handler add %k"
+ACTION=="remove", SUBSYSTEM=="bluetooth", RUN+="/usr/lib/meridian/bluetooth-handler remove %k"
+
+# WiFi devices
+ACTION=="add", SUBSYSTEM=="net", KERNEL=="wlan*", RUN+="/usr/lib/meridian/wifi-handler add %k"
+ACTION=="remove", SUBSYSTEM=="net", KERNEL=="wlan*", RUN+="/usr/lib/meridian/wifi-handler remove %k"
+
+# WWAN devices
+ACTION=="add", SUBSYSTEM=="net", KERNEL=="wwan*", RUN+="/usr/lib/meridian/wwan-handler add %k"
+ACTION=="remove", SUBSYSTEM=="net", KERNEL=="wwan*", RUN+="/usr/lib/meridian/wwan-handler remove %k"
+
+# Modem devices
+ACTION=="add", SUBSYSTEM=="tty", KERNEL=="ttyUSB*", ATTRS{idVendor}=="2c7c", RUN+="/usr/lib/meridian/modem-handler add %k"
+ACTION=="add", SUBSYSTEM=="tty", KERNEL=="ttyACM*", ATTRS{idVendor}=="2c7c", RUN+="/usr/lib/meridian/modem-handler add %k"
+ACTION=="remove", SUBSYSTEM=="tty", KERNEL=="ttyUSB*", ATTRS{idVendor}=="2c7c", RUN+="/usr/lib/meridian/modem-handler remove %k"
+ACTION=="remove", SUBSYSTEM=="tty", KERNEL=="ttyACM*", ATTRS{idVendor}=="2c7c", RUN+="/usr/lib/meridian/modem-handler remove %k"
+
+# Camera devices
+ACTION=="add", SUBSYSTEM=="video4linux", RUN+="/usr/lib/meridian/camera-handler add %k"
+ACTION=="remove", SUBSYSTEM=="video4linux", RUN+="/usr/lib/meridian/camera-handler remove %k"
+
+# Audio devices
+ACTION=="add", SUBSYSTEM=="sound", RUN+="/usr/lib/meridian/audio-handler add %k"
+ACTION=="remove", SUBSYSTEM=="sound", RUN+="/usr/lib/meridian/audio-handler remove %k"
+
+# Input devices (keyboard, mouse, touchscreen)
+ACTION=="add", SUBSYSTEM=="input", RUN+="/usr/lib/meridian/input-handler add %k"
+ACTION=="remove", SUBSYSTEM=="input", RUN+="/usr/lib/meridian/input-handler remove %k"
+
+# Dock station
+ACTION=="change", SUBSYSTEM=="dock", RUN+="/usr/lib/meridian/dock-handler %k %s"
+
+# HDMI/DisplayPort
+ACTION=="change", SUBSYSTEM=="drm", KERNEL=="card*", RUN+="/usr/lib/meridian/display-handler %k %s"
+
+# MMC/SD card
+ACTION=="add", SUBSYSTEM=="mmc_host", RUN+="/usr/lib/meridian/mmc-handler add %k"
+ACTION=="remove", SUBSYSTEM=="mmc_host", RUN+="/usr/lib/meridian/mmc-handler remove %k"
+
+# Block devices (SD card, USB storage)
+ACTION=="add", SUBSYSTEM=="block", KERNEL=="mmcblk*|sd*", RUN+="/usr/lib/meridian/storage-handler add %k"
+ACTION=="remove", SUBSYSTEM=="block", KERNEL=="mmcblk*|sd*", RUN+="/usr/lib/meridian/storage-handler remove %k"
+
+# Power button
+ACTION=="change", SUBSYSTEM=="input", KERNEL=="event*", ATTR{name}=="*power*", RUN+="/usr/lib/meridian/power-button-handler %k %s"
+
+# Lid switch
+ACTION=="change", SUBSYSTEM=="switch", KERNEL=="lid", RUN+="/usr/lib/meridian/lid-handler %k %s"
+
+# Tablet mode switch
+ACTION=="change", SUBSYSTEM=="switch", KERNEL=="tablet_mode", RUN+="/usr/lib/meridian/tablet-mode-handler %k %s"
+
+# Dock station
+ACTION=="change", SUBSYSTEM=="dock", RUN+="/usr/lib/meridian/dock-handler %k %s"
+
+# Keyboard attach/detach
+ACTION=="add", SUBSYSTEM=="hid", ATTR{name}=="*keyboard*", RUN+="/usr/lib/meridian/keyboard-handler add %k"
+ACTION=="remove", SUBSYSTEM=="hid", ATTR{name}=="*keyboard*", RUN+="/usr/lib/meridian/keyboard-handler remove %k"
+
+# Touchscreen
+ACTION=="add", SUBSYSTEM=="input", ATTR{name}=="*touchscreen*|*touch*", RUN+="/usr/lib/meridian/touchscreen-handler add %k"
+ACTION=="remove", SUBSYSTEM=="input", ATTR{name}=="*touchscreen*|*touch*", RUN+="/usr/lib/meridian/touchscreen-handler remove %k"

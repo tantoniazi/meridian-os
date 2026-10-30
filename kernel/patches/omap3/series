@@ -1,0 +1,41 @@
+# Meridian OS - OMAP3 Kernel Patches
+# 
+# This directory contains patches for mainline Linux kernel 6.6 LTS
+# to support OMAP3 devices (N900, N9, N950) on Meridian OS.
+#
+# Patches are applied in order during kernel build via KAS.
+
+# 0001-ARM-omap3-n900-Add-N900-device-tree-support.patch
+# 0002-ARM-omap3-n9-Add-N9-device-tree-support.patch
+# 0003-ARM-omap3-n950-Add-N950-device-tree-support.patch
+# 0004-drm-omap3-Add-mainline-PowerVR-SGX-support.patch
+# 0005-hsi-ti-Add-HSI-modem-support-for-N900.patch
+# 0006-sensor-lis331-Add-LIS331-accelerometer-support.patch
+# 0007-sensor-hmc5843-Add-HMC5843-magnetometer-support.patch
+# 0008-sensor-l3g4200d-Add-L3G4200D-gyroscope-support.patch
+# 0009-camera-mt9t111-Add-MT9T111-sensor-support.patch
+# 0010-camera-mt9t112-Add-MT9T112-sensor-support.patch
+# 0010-audio-tps65950-Add-TPS65950-audio-codec-support.patch
+# 0011-audio-twl4030-Add-TWL4030-audio-codec-support.patch
+# 0012-usb-musb-Add-OTG-support-for-OMAP3.patch
+# 0013-usb-tusb6010-Add-TUSB6010-phy-support.patch
+# 0014-power-tps65950-Add-power-reset-regulator-support.patch
+# 0014-input-tps65950-Add-keyboard-touchscreen-support.patch
+# 0015-video-omap3-camera-Add-OMAP3-camera-support.patch
+# 0016-dss-omap3-Add-display-subsystem-support.patch
+# 0017-i2c-omap-Add-I2C-support-for-OMAP3.patch
+# 0018-spi-omap24xx-Add-SPI-support.patch
+# 0019-watchdog-omap-Add-watchdog-support.patch
+# 0020-rtc-tps65950-Add-RTC-support.patch
+# 0021-mmc-omap-hs-Add-HS-MMC-support.patch
+# 0022-mmc-sdhci-omap-Add-SDHCI-support.patch
+# 0023-leds-tps65950-Add-LED-support.patch
+# 0024-input-keyboard-gpio-Add-GPIO-keyboard-support.patch
+# 0025-input-keyboard-tps65950-Add-TPS65950-keyboard-support.patch
+# 0026-input-touchscreen-tps65950-Add-touchscreen-support.patch
+# 0027-watchdog-omap-Add-watchdog-support.patch
+# 0028-omap3-n900-dts-Add-N900-device-tree.patch
+# 0028-omap3-n9-dts-Add-N9-device-tree.patch
+# 0028-omap3-n950-dts-Add-N950-device-tree.patch
+# 0029-omap3-n900-overlays-Add-DT-overlays.patch
+# 0030-firmware-ti-connectivity-Add-WL1271-firmware-loading.patch

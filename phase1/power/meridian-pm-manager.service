@@ -1,0 +1,25 @@
+[Unit]
+Description=Meridian OS Power Profile Manager
+Documentation=man:meridian-pm-manager(1)
+After=multi-user.target
+Wants=dbus.service upower.service
+
+[Service]
+Type=dbus
+BusName=org.meridian.PowerManager
+ExecStart=/usr/lib/meridian/meridian-pm-manager --daemon
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Security hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/run/meridian /etc/meridian
+CapabilityBoundingSet=CAP_SYS_ADMIN CAP_DAC_OVERRIDE CAP_SYS_RESOURCE
+
+[Install]
+WantedBy=multi-user.target
