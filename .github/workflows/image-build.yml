@@ -1,20 +1,6 @@
-name: Image Build
+name: Image Build (Manual - Requires Kernel, Rootfs, Package Repo)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'build/*.yml'
-      - 'scripts/build_phase0.sh'
-      - 'scripts/build_u_boot.sh'
-      - '.github/workflows/image-build.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'build/*.yml'
-      - 'scripts/build_phase0.sh'
-      - 'scripts/build_u_boot.sh'
-      - '.github/workflows/image-build.yml'
   workflow_dispatch:
     inputs:
       devices:
@@ -22,6 +8,13 @@ on:
         required: false
         default: 'n900,n9'
         type: string
+
+# NOTE: This workflow requires:
+# 1. Kernel build artifacts (from kernel-build workflow)
+# 2. Rootfs with OSTree repo (from rootfs-build workflow, needs package repo)
+# 3. App build artifacts
+# 4. Custom Debian package repository for meridian-* packages
+# It is not run on push/pull_request. Run manually when all dependencies are available.
 
 jobs:
   build-image:

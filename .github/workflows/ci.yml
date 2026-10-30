@@ -11,16 +11,8 @@ on:
         description: 'Skip kernel build'
         type: boolean
         default: false
-      skip_rootfs:
-        description: 'Skip rootfs build'
-        type: boolean
-        default: false
       skip_apps:
         description: 'Skip app build'
-        type: boolean
-        default: false
-      skip_images:
-        description: 'Skip image build'
         type: boolean
         default: false
 
@@ -78,31 +70,18 @@ jobs:
     if: ${{ !github.event.inputs.skip_kernel }}
     secrets: inherit
 
-  rootfs-build:
-    name: Rootfs Build
-    uses: ./.github/workflows/rootfs-build.yml
-    if: ${{ !github.event.inputs.skip_rootfs }}
-    secrets: inherit
-
   app-build:
     name: App Build
     uses: ./.github/workflows/app-build.yml
     if: ${{ !github.event.inputs.skip_apps }}
     secrets: inherit
 
-  image-build:
-    name: Image Build
-    uses: ./.github/workflows/image-build.yml
-    needs: [kernel-build, rootfs-build, app-build]
-    if: ${{ !github.event.inputs.skip_images && (needs.kernel-build.result == 'success' || needs.kernel-build.result == 'skipped') && (needs.rootfs-build.result == 'success' || needs.rootfs-build.result == 'skipped') && (needs.app-build.result == 'success' || needs.app-build.result == 'skipped') }}
-    secrets: inherit
-
   notify-success:
     name: Notify Success
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [lint, kernel-build, rootfs-build, app-build, image-build]
-    if: always() && needs.lint.result == 'success' && (needs.kernel-build.result == 'success' || needs.kernel-build.result == 'skipped') && (needs.rootfs-build.result == 'success' || needs.rootfs-build.result == 'skipped') && (needs.app-build.result == 'success' || needs.app-build.result == 'skipped') && (needs.image-build.result == 'success' || needs.image-build.result == 'skipped')
+    needs: [lint, kernel-build, app-build]
+    if: always() && needs.lint.result == 'success' && (needs.kernel-build.result == 'success' || needs.kernel-build.result == 'skipped') && (needs.app-build.result == 'success' || needs.app-build.result == 'skipped')
     steps:
       - name: Success summary
         run: |
@@ -112,13 +91,17 @@ jobs:
           echo "Workflow: ${{ github.workflow }}"
           echo ""
           echo "Artifacts retained for 30 days."
+          echo ""
+          echo "Manual workflows (run when package repo available):"
+          echo "  - Rootfs Build"
+          echo "  - Image Build"
 
   notify-failure:
     name: Notify Failure
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [lint, kernel-build, rootfs-build, app-build, image-build]
-    if: always() && (needs.lint.result == 'failure' || needs.kernel-build.result == 'failure' || needs.rootfs-build.result == 'failure' || needs.app-build.result == 'failure' || needs.image-build.result == 'failure')
+    needs: [lint, kernel-build, app-build]
+    if: always() && (needs.lint.result == 'failure' || needs.kernel-build.result == 'failure' || needs.app-build.result == 'failure')
     steps:
       - name: Failure summary
         run: |
@@ -130,7 +113,5 @@ jobs:
           echo "Job statuses:"
           echo "  lint: ${{ needs.lint.result }}"
           echo "  kernel-build: ${{ needs.kernel-build.result }}"
-          echo "  rootfs-build: ${{ needs.rootfs-build.result }}"
           echo "  app-build: ${{ needs.app-build.result }}"
-          echo "  image-build: ${{ needs.image-build.result }}"
           exit 1
