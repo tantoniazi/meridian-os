@@ -44,7 +44,7 @@ jobs:
             cross_compile: arm-linux-gnueabihf-
             defconfig: meridian-omap3_defconfig
             dtbs: "omap3-n900.dtb omap3-n9.dtb omap3-n950.dtb"
-            kernel_image: arch/arm/boot/uImage
+            kernel_image: arch/arm/boot/Image
           - target: sunxi
             arch: arm64
             cross_compile: aarch64-linux-gnu-
