@@ -44,7 +44,7 @@ jobs:
             cross_compile: arm-linux-gnueabihf-
             defconfig: meridian-omap3_defconfig
             dtbs: "omap3-n900.dtb omap3-n9.dtb omap3-n950.dtb"
-            kernel_image: arch/arm/boot/zImage
+            kernel_image: arch/arm/boot/uImage
           - target: sunxi
             arch: arm64
             cross_compile: aarch64-linux-gnu-
@@ -139,14 +139,8 @@ jobs:
           make O="$BUILD_DIR" ARCH=${{ matrix.arch }} CROSS_COMPILE=${{ matrix.cross_compile }} ${{ matrix.defconfig }}
           
           # Build
-          if [[ "${{ matrix.target }}" == "omap3" ]]; then
-            # OMAP3 needs LOADADDR for zImage
-            make -j$(nproc) O="$BUILD_DIR" ARCH=${{ matrix.arch }} CROSS_COMPILE=${{ matrix.cross_compile }} \
-              LOADADDR=0x80008000 ${{ matrix.kernel_image }} modules dtbs
-          else
-            make -j$(nproc) O="$BUILD_DIR" ARCH=${{ matrix.arch }} CROSS_COMPILE=${{ matrix.cross_compile }} \
-              ${{ matrix.kernel_image }} modules dtbs
-          fi
+          make -j$(nproc) O="$BUILD_DIR" ARCH=${{ matrix.arch }} CROSS_COMPILE=${{ matrix.cross_compile }} \
+            ${{ matrix.kernel_image }} modules dtbs
           
           # Install modules
           make O="$BUILD_DIR" ARCH=${{ matrix.arch }} CROSS_COMPILE=${{ matrix.cross_compile }} \
