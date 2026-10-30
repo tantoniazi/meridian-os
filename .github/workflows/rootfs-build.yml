@@ -1,6 +1,6 @@
 name: Rootfs Build (Manual - Requires Package Repository)
 
-on:
+'on':
   workflow_dispatch:
     inputs:
       distro:

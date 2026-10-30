@@ -1,6 +1,6 @@
 name: Image Build (Manual - Requires Kernel, Rootfs, Package Repo)
 
-on:
+'on':
   workflow_dispatch:
     inputs:
       devices:

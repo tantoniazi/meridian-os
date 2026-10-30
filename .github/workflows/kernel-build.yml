@@ -1,6 +1,6 @@
 name: Kernel Build
 
-on:
+'on':
   push:
     branches: [main]
     paths:
@@ -25,7 +25,6 @@ on:
         required: false
         type: string
         default: 'omap3,sunxi,imx8'
-        type: string
 
 jobs:
   build-kernel:
