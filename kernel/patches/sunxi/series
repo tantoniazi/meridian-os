@@ -1,0 +1,91 @@
+# Meridian OS - Allwinner sunxi (PinePhone A64) Kernel Patches
+#
+# This directory contains patches for mainline Linux kernel 6.6 LTS
+# to support PinePhone (Allwinner A64/sun50i) on Meridian OS.
+#
+# Patches are applied in order during kernel build via KAS.
+
+# Device Tree enable
+0001-arm64-dts-sun50i-a64-Add-PinePhone-device-tree-support.patch
+0002-arm64-dts-sun50i-a64-Add-PinePhone-Pro-device-tree-support.patch
+0003-arm64-dts-sun50i-a64-Add-DT-overlays-for-PinePhone.patch
+
+# Display (LCD panel - ST7703)
+0004-drm-panel-sitronix-st7703-Add-ST7703-panel-driver.patch
+0005-drm-sun4i-Add-ST7703-support-to-sun4i-drm.patch
+
+# Touchscreen (Goodix GT911)
+0006-input-goodix-Add-GT911-support-for-PinePhone.patch
+0007-input-goodix-Add-firmware-loading-for-PinePhone.patch
+
+# WiFi (XR819 / RTL8723CS)
+0008-wifi-xr819-Add-XR819-WiFi-driver.patch
+0009-wifi-rtl8723cs-Add-RTL8723CS-support.patch
+0010-firmware-xradio-Add-XR819-firmware-loading.patch
+
+# Bluetooth
+0011-bluetooth-rtl-Add-RTL8723CS-Bluetooth-support.patch
+0012-bluetooth-hci-Add-uart-support-for-PinePhone-BT.patch
+
+# Modem (Quectel EG25-G)
+0013-usb-serial-qualcomm-Add-EG25-G-support.patch
+0014-usb-qmi-wwan-Add-QMI-support-for-EG25.patch
+0015-usb-cdc-mbim-Add-MBIM-support-for-EG25.patch
+0016-usb-net-qmi-wwan-Add-QMI-WWAN-for-modem.patch
+
+# Audio (sun50i-a64 codec)
+0017-asoc-sunxi-Add-sun50i-a64-audio-codec-support.patch
+0018-asoc-sun8i-codec-Add-analog-codec-support.patch
+0019-asoc-simple-card-Add-PinePhone-audio-card.patch
+
+# PMIC/Battery/Charging (AXP803/805)
+0020-power-axp20x-Add-AXP803-support.patch
+0021-power-axp20x-Add-AXP805-support.patch
+0022-regulator-axp20x-Add-AXP803-regulators.patch
+0023-regulator-axp20x-Add-AXP805-regulators.patch
+0024-battery-axp20x-Add-battery-support-for-PinePhone.patch
+0025-charger-axp20x-Add-charging-support-for-PinePhone.patch
+
+# Sensors
+0026-iio-stk3310-Add-STK3310-ALS-proximity-support.patch
+0027-iio-ltr553-Add-LTR553-ALS-proximity-support.patch
+0028-iio-st-lsm6dsx-Add-LSM6DSX-accel-gyro-support.patch
+0029-iio-ak09911-Add-AK09911-magnetometer-support.patch
+
+# Camera
+0030-media-ov5640-Add-OV5640-rear-camera-support.patch
+0031-media-gc2145-Add-GC2145-front-camera-support.patch
+0031-media-sunxi-csi-Add-CSI-support-for-A64.patch
+
+# GPS
+0032-gps-serial-Add-GPS-UART-support.patch
+
+# USB OTG
+0033-usb-sunxi-Add-OTG-support-for-A64.patch
+0034-usb-phy-sunxi-Add-USB-PHY-support.patch
+
+# MMC/SD
+0035-mmc-sunxi-Add-SDIO-support-for-WiFi.patch
+0036-mmc-sunxi-Add-eMMC-support.patch
+
+# Hardware kill switches
+0037-input-gpio-keys-Add-kill-switch-support.patch
+0038-switch-gpio-Add-hardware-switch-support.patch
+
+# Power management
+0039-pm-sunxi-Add-suspend-resume-support.patch
+0040-cpuidle-sunxi-Add-cpuidle-support.patch
+0041-cpufreq-sunxi-Add-cpufreq-support.patch
+
+# Thermal
+0042-thermal-sunxi-Add-thermal-zone-support.patch
+
+# LED
+0043-leds-axp20x-Add-LED-support-for-PMIC.patch
+
+# RTC
+0044-rtc-sunxi-Add-RTC-support.patch
+0045-rtc-axp20x-Add-PMIC-RTC-support.patch
+
+# Vibrator
+0046-input-gpio-vibra-Add-vibrator-support.patch

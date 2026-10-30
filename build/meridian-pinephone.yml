@@ -1,0 +1,156 @@
+# Meridian OS - KAS Build Configuration for PinePhone Image
+# Builds a complete phone image with OSTree for PinePhone (Allwinner A64)
+
+header:
+  version: 18
+  repos:
+    - name: debian
+      url: https://deb.debian.org/debian
+      branches: [trixie]
+    - name: meridian
+      url: https://github.com/meridian-os/meridian-os
+      path: build/packages
+      branches: [main]
+
+local_repo_dir: "build/repo"
+
+distro: meridian
+target: phone-pinephone
+
+machine: pinephone
+arch: arm64
+
+packages:
+  # Base system
+  - meridian-base
+  - meridian-kernel-sunxi
+  - meridian-shell
+  - meridian-home
+  - meridian-settings
+  - meridian-dialer
+  - meridian-messages
+  - meridian-contacts
+  - meridian-camera
+  - meridian-browser
+  - meridian-file-manager
+  - meridian-terminal
+  - meridian-store
+  
+  # System
+  - flatpak
+  - ostree
+  - systemd
+  - systemd-sysv
+  - pipewire
+  - wireplumber
+  - modemmanager
+  - network-manager
+  - bluez
+  - gpsd
+  - sensorfw
+  - libcamera
+  - libcamera-tools
+  - mesa
+  - mesa-vulkan-drivers
+  - vulkan-tools
+  - weston
+  - maliit-keyboard
+  - maliit-plugins
+  - kirigami-addons
+  - qt6-declarative
+  - qt6-quick3d
+  - qt6-multimedia
+  - gtk4
+  - libadwaita-1
+  - xwayland
+  
+  # Hardware support (PinePhone specific)
+  - linux-image-meridian-sunxi
+  - linux-firmware
+  - linux-firmware-sunxi
+  - firmware-xradio
+  - firmware-rtlwifi
+  - u-boot-pinephone
+  - flash-kernel
+  - u-boot-tools
+  - mtd-utils
+  - mtd-utils-ubifs
+  - sunxi-tools
+  
+  # PinePhone specific hardware packages
+  - pinephone-hwinit
+  - pinephone-scripts
+  - axp20x-utils
+  - i2c-tools
+  - gpiod
+  
+  # Utilities
+  - vim-tiny
+  - less
+  - bash-completion
+  - curl
+  - wget
+  - ca-certificates
+  - openssh-client
+  - openssh-server
+  - sudo
+  - locales
+  - tzdata
+  - keyboard-configuration
+  - console-setup
+  - plymouth
+  - plymouth-theme-meridian
+
+image:
+  type: ostree
+  bootloader: u-boot
+  rootfs:
+    size: 4G
+    filesystem: ext4
+  deploy:
+    - /ostree
+    - /var
+    - /home
+
+post_processing_commands:
+  - "echo 'meridian' > /etc/hostname"
+  - "echo '127.0.0.1 localhost meridian' > /etc/hosts"
+  - "echo 'root:meridian' | chpasswd"
+  - "systemctl enable systemd-networkd systemd-resolved"
+  - "systemctl enable ModemManager"
+  - "systemctl enable bluetooth"
+  - "systemctl enable NetworkManager"
+  - "systemctl enable wpa_supplicant"
+  - "systemctl enable gpsd"
+  - "systemctl enable ofono"
+  - "systemctl enable weston"
+  - "systemctl enable maliit-keyboard"
+  - "systemctl enable flatpak-system-helper"
+  - "systemctl enable ostree-remount"
+  - "systemctl enable pinephone-hwinit"
+  - "echo 'LANG=en_US.UTF-8' > /etc/locale.conf"
+  - "echo 'en_US.UTF-8 UTF-8' > /etc/locale.gen"
+  - "locale-gen"
+  - "echo 'UTC' > /etc/timezone"
+  - "ln -sf /usr/share/zoneinfo/UTC /etc/localtime"
+  - "mkdir -p /ostree/deploy/meridian.ostree"
+  - "mkdir -p /var"
+  - "mkdir -p /home"
+  # PinePhone specific: set up hardware switches
+  - "mkdir -p /sys/class/switch"
+  - "echo 'pinephone' > /etc/meridian/device"
+
+# OSTree commit
+ostree:
+  repo: /ostree/repo
+  branch: meridian/phone-pinephone
+  subject: "Meridian OS $(date +%Y%m%d) - PinePhone image"
+  body: "Meridian OS phone image for PinePhone (Allwinner A64)"
+  metadata:
+    version: "$(date +%Y%m%d)"
+    arch: "arm64"
+    device: "pinephone"
+    variant: "phone"
+
+# Output
+output_dir: "build/tmp/deploy/images/pinephone"

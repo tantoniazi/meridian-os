@@ -1,0 +1,91 @@
+# Meridian OS - NXP i.MX8MQ (Librem 5) Kernel Patches
+#
+# This directory contains patches for mainline Linux kernel 6.6 LTS
+# to support Librem 5 (NXP i.MX8MQ) on Meridian OS.
+#
+# Patches are applied in order during kernel build via KAS.
+
+# Device Tree enable
+0001-arm64-dts-imx8mq-Add-Librem-5-device-tree-support.patch
+0002-arm64-dts-imx8mq-Add-Librem-5-DT-overlays.patch
+
+# Display (LT8918 bridge + LT8912 LCD panel)
+0003-drm-bridge-lt8918-Add-LT8918-bridge-driver.patch
+0004-drm-panel-lt8912-Add-LT8912-panel-driver.patch
+0005-drm-imx-dcss-Add-LT8918-LT8912-support.patch
+
+# Touchscreen (Goodix GT911 I2C)
+0006-input-goodix-Add-GT911-support-for-Librem5.patch
+0007-input-goodix-Add-firmware-loading-for-Librem5.patch
+
+# Modem (BM818/BM818-A1 USB/QMI)
+0008-usb-serial-qualcomm-Add-BM818-support.patch
+0009-usb-qmi-wwan-Add-QMI-support-for-BM818.patch
+0010-usb-net-qmi-wwan-Add-QMI-WWAN-for-BM818.patch
+0011-mhi-bus-Add-USB-support-for-BM818.patch
+
+# WiFi/Bluetooth (RS9116 SDIO/SPI)
+0012-wifi-rsi-Add-RS9116-WiFi-driver.patch
+0013-wifi-rsi-Add-SDIO-support-for-RS9116.patch
+0014-wifi-rsi-Add-SPI-support-for-RS9116.patch
+0015-firmware-rsi-Add-RS9116-firmware-loading.patch
+0016-bluetooth-rsi-Add-RS9116-Bluetooth-support.patch
+0017-bluetooth-hci-Add-uart-support-for-Librem5-BT.patch
+
+# Audio (WM8962 codec)
+0018-asoc-wm8962-Add-WM8962-codec-support.patch
+0019-asoc-imx8mq-Add-WM8962-audio-card-support.patch
+0020-asoc-simple-card-Add-Librem5-audio-card.patch
+
+# PMIC/Battery/Charging (BD71837)
+0021-power-bd71837-Add-BD71837-PMIC-support.patch
+0022-regulator-bd71837-Add-BD71837-regulators.patch
+0023-battery-bd71837-Add-battery-support-for-Librem5.patch
+0024-charger-bd71837-Add-charging-support-for-Librem5.patch
+
+# Sensors (LSM6DS3 accel/gyro, LIS3MDL magnetometer)
+0025-iio-st-lsm6dsx-Add-LSM6DS3-support.patch
+0026-iio-st-lis3mdl-Add-LIS3MDL-support.patch
+
+# Hardware kill switches (modem, wifi/bt, camera/mic, HKS)
+0027-input-gpio-keys-Add-kill-switch-support.patch
+0028-switch-gpio-Add-hardware-switch-support.patch
+
+# USB-C DisplayPort alt mode
+0029-typec-tcpm-Add-USB-C-support-for-i.MX8MQ.patch
+0030-typec-dp-altmode-Add-DP-altmode-support.patch
+0031-usb-dwc3-imx8-Add-DP-altmode-support.patch
+
+# Smartcard reader
+0032-usb-ccid-Add-smartcard-reader-support.patch
+
+# USB OTG / DWC3
+0033-usb-dwc3-imx8-Add-OTG-support.patch
+0034-usb-phy-imx8-Add-USB-PHY-support.patch
+
+# MMC/SD (eMMC, SD card)
+0035-mmc-imx-sdhci-Add-eMMC-support.patch
+0036-mmc-imx-sdhci-Add-SDIO-support-for-WiFi.patch
+
+# Camera (OV5640 rear, GC2145 front)
+0037-media-ov5640-Add-OV5640-support-for-Librem5.patch
+0038-media-gc2145-Add-GC2145-support-for-Librem5.patch
+0039-media-imx-csi-Add-MIPI-CSI2-support-for-i.MX8MQ.patch
+
+# Power management
+0040-pm-imx8mq-Add-suspend-resume-support.patch
+0041-cpuidle-imx8mq-Add-cpuidle-support.patch
+0042-cpufreq-imx8mq-Add-cpufreq-support.patch
+
+# Thermal
+0043-thermal-imx8mq-Add-thermal-zone-support.patch
+
+# LED
+0044-leds-bd71837-Add-LED-support-for-PMIC.patch
+
+# RTC
+0045-rtc-imx-Add-RTC-support.patch
+0046-rtc-bd71837-Add-PMIC-RTC-support.patch
+
+# Vibrator
+0047-input-gpio-vibra-Add-vibrator-support.patch
