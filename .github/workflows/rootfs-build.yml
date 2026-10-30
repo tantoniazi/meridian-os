@@ -52,7 +52,7 @@ jobs:
             qemu-user-static \
             binfmt-support \
             u-boot-tools \
-            dtc \
+            device-tree-compiler \
             dosfstools \
             e2fsprogs \
             parted \
