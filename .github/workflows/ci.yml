@@ -11,10 +11,10 @@ name: CI Pipeline
         description: 'Skip kernel build'
         type: boolean
         default: false
-      skip_apps:
-        description: 'Skip app build'
-        type: boolean
-        default: false
+
+# NOTE: App builds require Qt6/KDE development packages not available in Ubuntu 24.04.
+# Run app-build workflow manually on self-hosted runner with proper build environment.
+# Kernel builds work on GitHub-hosted runners via cross-compilation.
 
 jobs:
   lint:
@@ -70,18 +70,12 @@ jobs:
     if: ${{ !github.event.inputs.skip_kernel }}
     secrets: inherit
 
-  app-build:
-    name: App Build
-    uses: ./.github/workflows/app-build.yml
-    if: ${{ !github.event.inputs.skip_apps }}
-    secrets: inherit
-
   notify-success:
     name: Notify Success
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [lint, kernel-build, app-build]
-    if: always() && needs.lint.result == 'success' && (needs.kernel-build.result == 'success' || needs.kernel-build.result == 'skipped') && (needs.app-build.result == 'success' || needs.app-build.result == 'skipped')
+    needs: [lint, kernel-build]
+    if: always() && needs.lint.result == 'success' && (needs.kernel-build.result == 'success' || needs.kernel-build.result == 'skipped')
     steps:
       - name: Success summary
         run: |
@@ -92,16 +86,17 @@ jobs:
           echo ""
           echo "Artifacts retained for 30 days."
           echo ""
-          echo "Manual workflows (run when package repo available):"
-          echo "  - Rootfs Build"
-          echo "  - Image Build"
+          echo "Manual workflows (require proper build environment):"
+          echo "  - App Build (needs Qt6/KDE dev packages)"
+          echo "  - Rootfs Build (needs package repository)"
+          echo "  - Image Build (needs kernel + rootfs + apps)"
 
   notify-failure:
     name: Notify Failure
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [lint, kernel-build, app-build]
-    if: always() && (needs.lint.result == 'failure' || needs.kernel-build.result == 'failure' || needs.app-build.result == 'failure')
+    needs: [lint, kernel-build]
+    if: always() && (needs.lint.result == 'failure' || needs.kernel-build.result == 'failure')
     steps:
       - name: Failure summary
         run: |
@@ -113,5 +108,4 @@ jobs:
           echo "Job statuses:"
           echo "  lint: ${{ needs.lint.result }}"
           echo "  kernel-build: ${{ needs.kernel-build.result }}"
-          echo "  app-build: ${{ needs.app-build.result }}"
           exit 1
