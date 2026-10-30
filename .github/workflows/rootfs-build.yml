@@ -58,7 +58,8 @@ jobs:
             parted \
             xz-utils \
             python3 \
-            python3-pip
+            python3-pip \
+            debian-archive-keyring
 
       - name: Setup binfmt for qemu
         run: |
