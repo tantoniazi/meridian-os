@@ -18,6 +18,12 @@ on:
       targets:
         description: 'Kernel targets to build (comma-separated)'
         required: false
+  workflow_call:
+    inputs:
+      targets:
+        description: 'Kernel targets to build (comma-separated)'
+        required: false
+        type: string
         default: 'omap3,sunxi,imx8'
         type: string
 
