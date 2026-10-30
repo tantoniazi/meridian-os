@@ -107,7 +107,13 @@ jobs:
 
       - name: Copy config and patches to kernel source
         run: |
-          cp -r kernel/configs/* ${{ env.KERNEL_SOURCE }}/
+          # Copy defconfig to architecture-specific configs directory
+          if [[ "${{ matrix.arch }}" == "arm" ]]; then
+            cp kernel/configs/meridian-omap3_defconfig ${{ env.KERNEL_SOURCE }}/arch/arm/configs/
+          else
+            cp kernel/configs/meridian-sunxi_defconfig ${{ env.KERNEL_SOURCE }}/arch/arm64/configs/
+            cp kernel/configs/meridian-imx8_defconfig ${{ env.KERNEL_SOURCE }}/arch/arm64/configs/
+          fi
           cp -r kernel/patches ${{ env.KERNEL_SOURCE }}/
           cd ${{ env.KERNEL_SOURCE }}
           # Apply patches for the target
