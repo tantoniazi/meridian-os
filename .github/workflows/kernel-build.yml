@@ -82,7 +82,8 @@ jobs:
             cpio \
             xz-utils \
             python3 \
-            python3-pip
+            python3-pip \
+            ccache
 
       - name: Setup ccache
         uses: actions/cache@v4
@@ -98,23 +99,31 @@ jobs:
           echo "CCACHE_COMPRESS=1" >> $GITHUB_ENV
           echo "CCACHE_MAXSIZE=2G" >> $GITHUB_ENV
 
-      - name: Apply kernel patches
-        if: matrix.target == 'omap3'
+      - name: Clone Linux kernel source
         run: |
-          cd kernel
-          if [[ -d "patches/omap3" && -f "patches/omap3/series" ]]; then
-            echo "Applying OMAP3 patches..."
+          KERNEL_VERSION="6.6"
+          git clone --depth=1 --branch v${KERNEL_VERSION} https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git ${{ runner.temp }}/linux-source
+          echo "KERNEL_SOURCE=${{ runner.temp }}/linux-source" >> $GITHUB_ENV
+
+      - name: Copy config and patches to kernel source
+        run: |
+          cp -r kernel/configs/* ${{ env.KERNEL_SOURCE }}/
+          cp -r kernel/patches ${{ env.KERNEL_SOURCE }}/
+          cd ${{ env.KERNEL_SOURCE }}
+          # Apply patches for the target
+          if [[ -d "patches/${{ matrix.target }}" && -f "patches/${{ matrix.target }}/series" ]]; then
+            echo "Applying ${{ matrix.target }} patches..."
             while IFS= read -r patch; do
               [[ "$patch" =~ ^#.*$ ]] && continue
               [[ -z "$patch" ]] && continue
               echo "Applying patch: $patch"
-              git apply "patches/omap3/$patch" || echo "Patch $patch may already be applied or failed"
-            done < "patches/omap3/series"
+              git apply "patches/${{ matrix.target }}/$patch" || echo "Patch $patch may already be applied or failed"
+            done < "patches/${{ matrix.target }}/series"
           fi
 
       - name: Build kernel (${{ matrix.target }})
         run: |
-          cd kernel
+          cd ${{ env.KERNEL_SOURCE }}
           BUILD_DIR="${{ runner.temp }}/kernel-${{ matrix.target }}"
           OUTPUT_DIR="${{ runner.temp }}/output/kernel/${{ matrix.target }}"
           
