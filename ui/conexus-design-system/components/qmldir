@@ -1,0 +1,19 @@
+module Conexus.DesignSystem.Components
+Button.qml
+Card.qml
+TextField.qml
+Switch.qml
+Slider.qml
+Avatar.qml
+Badge.qml
+Toast.qml
+Dialog.qml
+BottomSheet.qml
+NavigationBar.qml
+AppBar.qml
+ListItem.qml
+Chip.qml
+Divider.qml
+ProgressIndicator.qml
+Icon.qml
+Typography.qml

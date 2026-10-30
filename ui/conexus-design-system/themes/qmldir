@@ -1,0 +1,5 @@
+module Conexus.DesignSystem.Themes
+singleton Theme.qml
+singleton LightTheme.qml
+singleton DarkTheme.qml
+singleton HighContrastTheme.qml

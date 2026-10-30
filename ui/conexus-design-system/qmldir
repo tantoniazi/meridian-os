@@ -1,0 +1,5 @@
+module Conexus.DesignSystem
+singleton ConexusDesignSystem.qml
+Tokens 1.0 Tokens/
+Components 1.0 Components/
+Themes 1.0 Themes/
