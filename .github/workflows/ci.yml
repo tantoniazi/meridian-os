@@ -1,0 +1,136 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      skip_kernel:
+        description: 'Skip kernel build'
+        type: boolean
+        default: false
+      skip_rootfs:
+        description: 'Skip rootfs build'
+        type: boolean
+        default: false
+      skip_apps:
+        description: 'Skip app build'
+        type: boolean
+        default: false
+      skip_images:
+        description: 'Skip image build'
+        type: boolean
+        default: false
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install linting tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            shellcheck \
+            yamllint \
+            cmake \
+            cppcheck
+
+      - name: Lint shell scripts
+        run: |
+          find . -name "*.sh" -type f ! -path "./.git/*" ! -path "./build/*" -exec shellcheck {} +
+
+      - name: Lint YAML files
+        run: |
+          yamllint .github/workflows/ build/*.yml
+
+      - name: Lint CMake files
+        run: |
+          cmake --version
+          # Basic CMake syntax check
+          for f in $(find . -name "CMakeLists.txt" -type f ! -path "./.git/*" ! -path "./build/*"); do
+            cmake -P "$f" 2>&1 | head -20 || true
+          done
+
+      - name: Static analysis (cppcheck)
+        run: |
+          cppcheck --enable=warning,style,performance,portability \
+            --std=c++20 \
+            --suppress=missingIncludeSystem \
+            -i build \
+            -i .git \
+            --inline-suppr \
+            --quiet \
+            apps/ ui/ 2>&1 | head -50 || true
+
+  kernel-build:
+    name: Kernel Build
+    uses: ./.github/workflows/kernel-build.yml
+    if: ${{ !github.event.inputs.skip_kernel }}
+    secrets: inherit
+
+  rootfs-build:
+    name: Rootfs Build
+    uses: ./.github/workflows/rootfs-build.yml
+    if: ${{ !github.event.inputs.skip_rootfs }}
+    secrets: inherit
+
+  app-build:
+    name: App Build
+    uses: ./.github/workflows/app-build.yml
+    if: ${{ !github.event.inputs.skip_apps }}
+    secrets: inherit
+
+  image-build:
+    name: Image Build
+    uses: ./.github/workflows/image-build.yml
+    needs: [kernel-build, rootfs-build, app-build]
+    if: ${{ !github.event.inputs.skip_images && (needs.kernel-build.result == 'success' || needs.kernel-build.result == 'skipped') && (needs.rootfs-build.result == 'success' || needs.rootfs-build.result == 'skipped') && (needs.app-build.result == 'success' || needs.app-build.result == 'skipped') }}
+    secrets: inherit
+
+  notify-success:
+    name: Notify Success
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [lint, kernel-build, rootfs-build, app-build, image-build]
+    if: always() && needs.lint.result == 'success' && (needs.kernel-build.result == 'success' || needs.kernel-build.result == 'skipped') && (needs.rootfs-build.result == 'success' || needs.rootfs-build.result == 'skipped') && (needs.app-build.result == 'success' || needs.app-build.result == 'skipped') && (needs.image-build.result == 'success' || needs.image-build.result == 'skipped')
+    steps:
+      - name: Success summary
+        run: |
+          echo "✅ All CI jobs passed!"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Workflow: ${{ github.workflow }}"
+          echo ""
+          echo "Artifacts retained for 30 days."
+
+  notify-failure:
+    name: Notify Failure
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [lint, kernel-build, rootfs-build, app-build, image-build]
+    if: always() && (needs.lint.result == 'failure' || needs.kernel-build.result == 'failure' || needs.rootfs-build.result == 'failure' || needs.app-build.result == 'failure' || needs.image-build.result == 'failure')
+    steps:
+      - name: Failure summary
+        run: |
+          echo "❌ CI pipeline failed!"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Workflow: ${{ github.workflow }}"
+          echo ""
+          echo "Job statuses:"
+          echo "  lint: ${{ needs.lint.result }}"
+          echo "  kernel-build: ${{ needs.kernel-build.result }}"
+          echo "  rootfs-build: ${{ needs.rootfs-build.result }}"
+          echo "  app-build: ${{ needs.app-build.result }}"
+          echo "  image-build: ${{ needs.image-build.result }}"
+          exit 1

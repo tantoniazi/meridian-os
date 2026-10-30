@@ -1,0 +1,302 @@
+name: Image Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'build/*.yml'
+      - 'scripts/build_phase0.sh'
+      - 'scripts/build_u_boot.sh'
+      - '.github/workflows/image-build.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'build/*.yml'
+      - 'scripts/build_phase0.sh'
+      - 'scripts/build_u_boot.sh'
+      - '.github/workflows/image-build.yml'
+  workflow_dispatch:
+    inputs:
+      devices:
+        description: 'Devices to build images for (comma-separated)'
+        required: false
+        default: 'n900,n9'
+        type: string
+
+jobs:
+  build-image:
+    name: Build Image (${{ matrix.device }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    needs: [kernel-build, rootfs-build, app-build]
+    strategy:
+      fail-fast: false
+      matrix:
+        device:
+          - n900
+          - n9
+        include:
+          - device: n900
+            kas_config: build/meridian-n900.yml
+            kernel_artifact: kernel-omap3
+            uboot_artifact: u-boot-n900
+            rootfs_branch: meridian/phone-n900
+            output_name: meridian-n900
+          - device: n9
+            kas_config: build/meridian-n9.yml
+            kernel_artifact: kernel-omap3
+            uboot_artifact: u-boot-n9
+            rootfs_branch: meridian/phone-n9
+            output_name: meridian-n9
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install KAS and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3 \
+            python3-pip \
+            python3-venv \
+            debootstrap \
+            mmdebstrap \
+            ostree \
+            qemu-user-static \
+            binfmt-support \
+            u-boot-tools \
+            dtc \
+            dosfstools \
+            e2fsprogs \
+            parted \
+            xz-utils \
+            cpio \
+            gzip \
+            bzip2 \
+            lz4 \
+            zstd \
+            sudo
+
+      - name: Setup Python venv for KAS
+        run: |
+          python3 -m venv ${{ runner.temp }}/kas-venv
+          source ${{ runner.temp }}/kas-venv/bin/activate
+          pip install --upgrade pip
+          pip install kas==4.4
+
+      - name: Setup binfmt for qemu
+        run: |
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          sudo update-binfmts --enable qemu-arm
+          sudo update-binfmts --enable qemu-aarch64
+
+      - name: Cache KAS build directory
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/tmp
+            build/cache
+          key: kas-build-${{ matrix.device }}-${{ runner.os }}-${{ hashFiles('build/*.yml', 'scripts/**') }}
+          restore-keys: |
+            kas-build-${{ matrix.device }}-${{ runner.os }}-
+
+      - name: Download kernel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.kernel_artifact }}
+          path: ${{ runner.temp }}/kernel
+        continue-on-error: true
+
+      - name: Download U-Boot artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.uboot_artifact }}
+          path: ${{ runner.temp }}/u-boot
+        continue-on-error: true
+
+      - name: Download rootfs artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: rootfs-ostree
+          path: ${{ runner.temp }}/rootfs
+        continue-on-error: true
+
+      - name: Prepare build environment
+        run: |
+          # Extract kernel artifacts
+          if [[ -d "${{ runner.temp }}/kernel" ]]; then
+            mkdir -p build/output/kernel
+            tar -xzf ${{ runner.temp }}/kernel/*.tar.gz -C build/output/kernel/ 2>/dev/null || true
+            cp ${{ runner.temp }}/kernel/*.dtb build/output/kernel/ 2>/dev/null || true
+            cp ${{ runner.temp }}/kernel/$(basename ${{ matrix.kernel_artifact == 'kernel-omap3' && 'zImage' || 'Image' }}) build/output/kernel/ 2>/dev/null || true
+          fi
+          
+          # Extract U-Boot artifacts
+          if [[ -d "${{ runner.temp }}/u-boot" ]]; then
+            mkdir -p build/output/u-boot/${{ matrix.device }}
+            cp ${{ runner.temp }}/u-boot/* build/output/u-boot/${{ matrix.device }}/ 2>/dev/null || true
+          fi
+          
+          # Extract OSTree repo
+          if [[ -d "${{ runner.temp }}/rootfs" ]]; then
+            mkdir -p build/tmp/deploy/ostree
+            tar -xzf ${{ runner.temp }}/rootfs/*.tar.gz -C build/tmp/deploy/ostree/ 2>/dev/null || true
+          fi
+          
+          # Verify OSTree repo exists
+          if [[ ! -d "build/tmp/deploy/ostree/repo" ]]; then
+            echo "OSTree repo not found, creating minimal one..."
+            mkdir -p build/tmp/deploy/ostree/repo
+            ostree --repo=build/tmp/deploy/ostree/repo init --mode=archive-z2
+          fi
+
+      - name: Build image with KAS
+        run: |
+          source ${{ runner.temp }}/kas-venv/bin/activate
+          cd ${{ github.workspace }}
+          
+          # Build the image
+          kas build ${{ matrix.kas_config }}
+          
+          echo "KAS build completed for ${{ matrix.device }}"
+
+      - name: Create SD card image
+        run: |
+          OUTPUT_DIR="${{ runner.temp }}/output"
+          mkdir -p "$OUTPUT_DIR"
+          
+          SD_IMG="$OUTPUT_DIR/${{ matrix.output_name }}-sd.img"
+          IMG_SIZE="4G"
+          
+          # Create empty image
+          dd if=/dev/zero of="$SD_IMG" bs=1M count=4096
+          
+          # Create partitions
+          parted "$SD_IMG" --script mklabel msdos
+          parted "$SD_IMG" --script mkpart primary fat32 1MiB 64MiB
+          parted "$SD_IMG" --script mkpart primary ext4 64MiB 100%
+          parted "$SD_IMG" --script set 1 boot on
+          
+          # Setup loop device
+          LOOP_DEV=$(sudo losetup --find --show --partscan "$SD_IMG")
+          
+          # Format partitions
+          sudo mkfs.vfat -F 32 -n "MERIDIAN_BOOT" "${LOOP_DEV}p1"
+          sudo mkfs.ext4 -L "MERIDIAN_ROOT" "${LOOP_DEV}p2"
+          
+          # Mount and copy bootloader
+          BOOT_MNT=$(mktemp -d)
+          ROOT_MNT=$(mktemp -d)
+          
+          sudo mount "${LOOP_DEV}p1" "$BOOT_MNT"
+          sudo mount "${LOOP_DEV}p2" "$ROOT_MNT"
+          
+          # Copy U-Boot
+          sudo cp build/output/u-boot/${{ matrix.device }}/MLO "$BOOT_MNT/" 2>/dev/null || true
+          sudo cp build/output/u-boot/${{ matrix.device }}/u-boot.img "$BOOT_MNT/" 2>/dev/null || true
+          
+          # Copy kernel and DTB
+          sudo cp build/output/kernel/zImage "$BOOT_MNT/" 2>/dev/null || true
+          sudo cp build/output/kernel/omap3-${{ matrix.device }}.dtb "$BOOT_MNT/" 2>/dev/null || true
+          sudo cp build/output/kernel/omap3-${{ matrix.device }}.dtb "$BOOT_MNT/dtb" 2>/dev/null || true
+          
+          # Copy OSTree repo
+          sudo cp -r build/tmp/deploy/ostree/repo "$ROOT_MNT/ostree/"
+          
+          # Create boot script
+          cat > /tmp/boot.scr << 'EOF'
+    setenv fdtfile omap3-${{ matrix.device }}.dtb
+    setenv overlays "${{ matrix.device }}-keyboard ${{ matrix.device }}-tvout"
+    setenv bootargs "console=ttyO2,115200 root=OSTREE=/ostree/deploy/meridian.ostree/0 ro quiet splash plymouth.ignore-serial-consoles"
+    load mmc 0:1 ${kernel_addr_r} /ostree/boot.1/zImage
+    load mmc 0:1 ${ramdisk_addr_r} /ostree/boot.1/initrd.img
+    load mmc 0:1 ${fdt_addr_r} /ostree/boot.1/omap3-${{ matrix.device }}.dtb
+    for overlay in ${overlays}; do
+        load mmc 0:1 ${fdt_addr_r} /ostree/boot.1/overlays/${overlay}.dtbo
+        fdt apply ${fdt_addr_r}
+    done
+    bootz ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r}
+    EOF
+          
+          sudo mkimage -A arm -O linux -T script -C none -n "Meridian Boot Script" -d /tmp/boot.scr "$BOOT_MNT/boot.scr.uimg"
+          
+          # Unmount
+          sudo umount "$BOOT_MNT"
+          sudo umount "$ROOT_MNT"
+          sudo losetup -d "$LOOP_DEV"
+          
+          # Compress image
+          xz -T0 -9 "$SD_IMG"
+          
+          echo "SD_IMAGE=$SD_IMG.xz" >> $GITHUB_ENV
+
+      - name: Upload SD card image
+        uses: actions/upload-artifact@v4
+        with:
+          name: sd-image-${{ matrix.device }}
+          path: ${{ env.SD_IMAGE }}
+          retention-days: 30
+
+      - name: Upload OSTree repository
+        uses: actions/upload-artifact@v4
+        with:
+          name: ostree-repo-${{ matrix.device }}
+          path: build/tmp/deploy/ostree/repo/**
+          retention-days: 30
+
+      - name: Upload KAS build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kas-build-${{ matrix.device }}
+          path: |
+            build/tmp/deploy/images/${{ matrix.device }}/**
+          retention-days: 30
+
+  build-all-images:
+    name: Build All Images (Aggregate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build-image
+    if: always()
+    steps:
+      - name: Download all image artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/artifacts
+          pattern: sd-image-*
+          merge-multiple: false
+
+      - name: List image artifacts
+        run: |
+          find ${{ runner.temp }}/artifacts -name "*.img.xz" -type f | sort
+          echo "Total images built: $(find ${{ runner.temp }}/artifacts -name "*.img.xz" -type f | wc -l)"
+
+      - name: Create manifest
+        run: |
+          MANIFEST="${{ runner.temp }}/images-manifest.txt"
+          echo "Meridian OS Images - $(date +%Y%m%d)" > "$MANIFEST"
+          echo "Commit: ${{ github.sha }}" >> "$MANIFEST"
+          echo "" >> "$MANIFEST"
+          
+          for img in ${{ runner.temp }}/artifacts/sd-image-*/*.img.xz; do
+            if [[ -f "$img" ]]; then
+              device=$(basename "$img" | sed 's/-sd.img.xz//')
+              size=$(du -h "$img" | cut -f1)
+              sha256=$(sha256sum "$img" | cut -d' ' -f1)
+              echo "$device: $size $sha256" >> "$MANIFEST"
+            fi
+          done
+          
+          cat "$MANIFEST"
+          echo "MANIFEST=$MANIFEST" >> $GITHUB_ENV
+
+      - name: Upload manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: images-manifest
+          path: ${{ env.MANIFEST }}
+          retention-days: 30

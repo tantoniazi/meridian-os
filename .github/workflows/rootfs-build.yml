@@ -1,0 +1,275 @@
+name: Rootfs Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/bootstrap_rootfs.sh'
+      - 'build/packages/**'
+      - '.github/workflows/rootfs-build.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/bootstrap_rootfs.sh'
+      - 'build/packages/**'
+      - '.github/workflows/rootfs-build.yml'
+  workflow_dispatch:
+    inputs:
+      distro:
+        description: 'Debian distribution'
+        required: false
+        default: 'trixie'
+        type: string
+      arch:
+        description: 'Architecture'
+        required: false
+        default: 'armhf'
+        type: string
+
+jobs:
+  bootstrap-rootfs:
+    name: Bootstrap Debian Rootfs with OSTree
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            mmdebstrap \
+            debootstrap \
+            ostree \
+            qemu-user-static \
+            binfmt-support \
+            u-boot-tools \
+            dtc \
+            dosfstools \
+            e2fsprogs \
+            parted \
+            xz-utils \
+            python3 \
+            python3-pip
+
+      - name: Setup binfmt for qemu
+        run: |
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          sudo update-binfmts --enable qemu-arm
+          sudo update-binfmts --enable qemu-aarch64
+
+      - name: Cache mmdebstrap
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: mmdebstrap-${{ runner.os }}-${{ hashFiles('scripts/bootstrap_rootfs.sh') }}
+          restore-keys: |
+            mmdebstrap-${{ runner.os }}-
+
+      - name: Create rootfs with mmdebstrap
+        run: |
+          ROOTFS_DIR="${{ runner.temp }}/meridian-rootfs"
+          OSTREE_REPO="${{ runner.temp }}/meridian-ostree"
+          DISTRO="${{ github.event.inputs.distro || 'trixie' }}"
+          ARCH="${{ github.event.inputs.arch || 'armhf' }}"
+          MIRROR="http://deb.debian.org/debian"
+          VARIANT="minbase"
+          COMPONENTS="main,contrib,non-free-firmware"
+          
+          mkdir -p "$ROOTFS_DIR" "$OSTREE_REPO"
+          
+          # Meridian-specific packages
+          MERIDIAN_PACKAGES=(
+            "meridian-base"
+            "meridian-kernel-omap3"
+            "meridian-shell"
+            "meridian-home"
+            "meridian-w10m"
+            "meridian-settings"
+            "meridian-dialer"
+            "meridian-messages"
+            "meridian-contacts"
+            "meridian-camera"
+            "meridian-browser"
+            "meridian-file-manager"
+            "meridian-terminal"
+            "meridian-store"
+            "flatpak"
+            "ostree"
+            "systemd"
+            "pipewire"
+            "wireplumber"
+            "modemmanager"
+            "network-manager"
+            "bluez"
+            "gpsd"
+            "sensorfw"
+            "libcamera"
+            "libcamera-tools"
+            "mesa"
+            "mesa-vulkan-drivers"
+            "vulkan-tools"
+            "weston"
+            "maliit-keyboard"
+            "maliit-plugins"
+            "kirigami-addons"
+            "qt6-declarative"
+            "qt6-quick3d"
+            "qt6-multimedia"
+            "gtk4"
+            "libadwaita-1"
+            "xwayland"
+          )
+          
+          PKG_LIST="${MERIDIAN_PACKAGES[*]}"
+          
+          echo "Creating rootfs using mmdebstrap..."
+          sudo mmdebstrap \
+            --architectures="$ARCH" \
+            --variant="$VARIANT" \
+            --components="$COMPONENTS" \
+            --include="$PKG_LIST" \
+            --hook-dir=/usr/share/mmdebstrap/hooks \
+            --customize-hook="echo 'meridian' > \$1/etc/hostname" \
+            --customize-hook="echo '127.0.0.1 localhost meridian' > \$1/etc/hosts" \
+            --customize-hook="echo 'root:meridian' | chroot \$1 chpasswd" \
+            --customize-hook="chroot \$1 systemctl enable systemd-networkd systemd-resolved" \
+            --customize-hook="chroot \$1 systemctl enable ModemManager" \
+            --customize-hook="chroot \$1 systemctl enable bluetooth" \
+            --customize-hook="chroot \$1 systemctl enable NetworkManager" \
+            --customize-hook="chroot \$1 systemctl enable wpa_supplicant" \
+            --customize-hook="chroot \$1 systemctl enable gpsd" \
+            --customize-hook="chroot \$1 systemctl enable ofono" \
+            --customize-hook="chroot \$1 systemctl enable weston" \
+            --customize-hook="chroot \$1 systemctl enable maliit-keyboard" \
+            --customize-hook="chroot \$1 systemctl enable flatpak-system-helper" \
+            --customize-hook="chroot \$1 systemctl enable ostree-remount" \
+            --customize-hook="echo 'LANG=en_US.UTF-8' > \$1/etc/locale.conf" \
+            --customize-hook="echo 'en_US.UTF-8 UTF-8' > \$1/etc/locale.gen" \
+            --customize-hook="chroot \$1 locale-gen" \
+            --customize-hook="echo 'UTC' > \$1/etc/timezone" \
+            --customize-hook="ln -sf /usr/share/zoneinfo/UTC \$1/etc/localtime" \
+            --customize-hook="mkdir -p \$1/ostree/deploy/meridian.ostree" \
+            --customize-hook="mkdir -p \$1/var" \
+            --customize-hook="mkdir -p \$1/home" \
+            "$DISTRO" \
+            "$ROOTFS_DIR" \
+            "$MIRROR"
+          
+          echo "ROOTFS_DIR=$ROOTFS_DIR" >> $GITHUB_ENV
+          echo "OSTREE_REPO=$OSTREE_REPO" >> $GITHUB_ENV
+
+      - name: Initialize OSTree repository
+        run: |
+          ostree --repo="${{ env.OSTREE_REPO }}" init --mode=archive-z2
+          echo "OSTree repository initialized at ${{ env.OSTREE_REPO }}"
+
+      - name: Commit rootfs to OSTree (n900)
+        run: |
+          COMMIT_SUBJECT="Meridian OS $(date +%Y%m%d) - Initial bootstrap for N900"
+          ostree --repo="${{ env.OSTREE_REPO }}" commit \
+            --branch=meridian/phone-n900 \
+            --subject="$COMMIT_SUBJECT" \
+            --body="Initial bootstrap of Meridian OS for N900" \
+            --tree=dir="${{ env.ROOTFS_DIR }}" \
+            --add-metadata-string="version=$(date +%Y%m%d)" \
+            --add-metadata-string="arch=armhf" \
+            --add-metadata-string="device=n900" \
+            --add-metadata-string="variant=phone"
+
+      - name: Commit rootfs to OSTree (n9)
+        run: |
+          COMMIT_SUBJECT="Meridian OS $(date +%Y%m%d) - Initial bootstrap for N9"
+          ostree --repo="${{ env.OSTREE_REPO }}" commit \
+            --branch=meridian/phone-n9 \
+            --subject="$COMMIT_SUBJECT" \
+            --body="Initial bootstrap of Meridian OS for N9/N950" \
+            --tree=dir="${{ env.ROOTFS_DIR }}" \
+            --add-metadata-string="version=$(date +%Y%m%d)" \
+            --add-metadata-string="arch=armhf" \
+            --add-metadata-string="device=n9" \
+            --add-metadata-string="variant=phone"
+
+      - name: Generate bootloader files
+        run: |
+          BOOT_DIR="${{ env.ROOTFS_DIR }}/ostree/boot.1"
+          mkdir -p "$BOOT_DIR"
+          
+          # Copy kernel, initramfs, and device tree from rootfs
+          if [[ -f "${{ env.ROOTFS_DIR }}/boot/vmlinuz-"* ]]; then
+            cp "${{ env.ROOTFS_DIR }}/boot/vmlinuz-"* "$BOOT_DIR/vmlinuz"
+          fi
+          
+          if [[ -f "${{ env.ROOTFS_DIR }}/boot/initrd.img-"* ]]; then
+            cp "${{ env.ROOTFS_DIR }}/boot/initrd.img-"* "$BOOT_DIR/initrd.img"
+          fi
+          
+          if [[ -f "${{ env.ROOTFS_DIR }}/boot/dtbs/omap3-n900.dtb" ]]; then
+            cp "${{ env.ROOTFS_DIR }}/boot/dtbs/omap3-n900.dtb" "$BOOT_DIR/dtb"
+          fi
+          
+          # Create boot script for N900
+          cat > "$BOOT_DIR/boot.scr" << 'EOF'
+    setenv fdtfile omap3-n900.dtb
+    setenv overlays "n900-keyboard n900-tvout"
+    setenv bootargs "console=ttyO2,115200 root=OSTREE=/ostree/deploy/meridian.ostree/0 ro quiet splash plymouth.ignore-serial-consoles"
+    load mmc 0:1 ${kernel_addr_r} /ostree/boot.1/vmlinuz
+    load mmc 0:1 ${ramdisk_addr_r} /ostree/boot.1/initrd.img
+    load mmc 0:1 ${fdt_addr_r} /ostree/boot.1/dtb
+    for overlay in ${overlays}; do
+        load mmc 0:1 ${fdt_addr_r} /ostree/boot.1/overlays/${overlay}.dtbo
+        fdt apply ${fdt_addr_r}
+    done
+    bootz ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r}
+    EOF
+          
+          # Compile boot script
+          mkimage -A arm -O linux -T script -C none -n "Meridian Boot Script" -d "$BOOT_DIR/boot.scr" "$BOOT_DIR/boot.scr.uimg"
+          
+          echo "BOOT_DIR=$BOOT_DIR" >> $GITHUB_ENV
+
+      - name: Create OSTree summary
+        run: |
+          ostree --repo="${{ env.OSTREE_REPO }}" summary -u
+
+      - name: Package OSTree repo
+        run: |
+          cd ${{ env.OSTREE_REPO }}
+          tar -czf "${{ runner.temp }}/ostree-repo-$(date +%Y%m%d).tar.gz" .
+          echo "OSTREE_PACKAGE=${{ runner.temp }}/ostree-repo-$(date +%Y%m%d).tar.gz" >> $GITHUB_ENV
+
+      - name: Upload rootfs artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rootfs-ostree
+          path: |
+            ${{ env.OSTREE_PACKAGE }}
+            ${{ env.ROOTFS_DIR }}/ostree/boot.1/**
+          retention-days: 30
+
+  build-packages:
+    name: Build Debian Packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: bootstrap-rootfs
+    if: false  # Enable when package build infrastructure is ready
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Build Meridian packages
+        run: |
+          echo "Package build step - to be implemented when build/packages/ is ready"
+          # This would build .deb packages from build/packages/
+          # using dpkg-buildpackage or similar

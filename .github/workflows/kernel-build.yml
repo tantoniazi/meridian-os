@@ -1,0 +1,219 @@
+name: Kernel Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'kernel/**'
+      - 'scripts/build_kernel.sh'
+      - '.github/workflows/kernel-build.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'kernel/**'
+      - 'scripts/build_kernel.sh'
+      - '.github/workflows/kernel-build.yml'
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: 'Kernel targets to build (comma-separated)'
+        required: false
+        default: 'omap3,sunxi,imx8'
+        type: string
+
+jobs:
+  build-kernel:
+    name: Build Kernel (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - omap3
+          - sunxi
+          - imx8
+        include:
+          - target: omap3
+            arch: arm
+            cross_compile: arm-linux-gnueabihf-
+            defconfig: meridian-omap3_defconfig
+            dtbs: "omap3-n900.dtb omap3-n9.dtb omap3-n950.dtb"
+            kernel_image: arch/arm/boot/zImage
+          - target: sunxi
+            arch: arm64
+            cross_compile: aarch64-linux-gnu-
+            defconfig: meridian-sunxi_defconfig
+            dtbs: "sun50i-a64-pinephone.dtb sun50i-a64-pinephone-1.2.dtb"
+            kernel_image: arch/arm64/boot/Image
+          - target: imx8
+            arch: arm64
+            cross_compile: aarch64-linux-gnu-
+            defconfig: meridian-imx8_defconfig
+            dtbs: "fsl-imx8mq-librem5.dtb fsl-imx8mq-librem5-devkit.dtb"
+            kernel_image: arch/arm64/boot/Image
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install toolchain and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            bc \
+            bison \
+            flex \
+            libssl-dev \
+            libelf-dev \
+            dwarves \
+            gcc-${{ matrix.arch == 'arm' && 'arm-linux-gnueabihf' || 'aarch64-linux-gnu' }} \
+            device-tree-compiler \
+            u-boot-tools \
+            cpio \
+            xz-utils \
+            python3 \
+            python3-pip
+
+      - name: Setup ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-kernel-${{ matrix.target }}-${{ runner.os }}-${{ hashFiles('kernel/**', 'scripts/build_kernel.sh') }}
+          restore-keys: |
+            ccache-kernel-${{ matrix.target }}-${{ runner.os }}-
+
+      - name: Configure ccache
+        run: |
+          echo "CCACHE_DIR=~/.ccache" >> $GITHUB_ENV
+          echo "CCACHE_COMPRESS=1" >> $GITHUB_ENV
+          echo "CCACHE_MAXSIZE=2G" >> $GITHUB_ENV
+
+      - name: Apply kernel patches
+        if: matrix.target == 'omap3'
+        run: |
+          cd kernel
+          if [[ -d "patches/omap3" && -f "patches/omap3/series" ]]; then
+            echo "Applying OMAP3 patches..."
+            while IFS= read -r patch; do
+              [[ "$patch" =~ ^#.*$ ]] && continue
+              [[ -z "$patch" ]] && continue
+              echo "Applying patch: $patch"
+              git apply "patches/omap3/$patch" || echo "Patch $patch may already be applied or failed"
+            done < "patches/omap3/series"
+          fi
+
+      - name: Build kernel (${{ matrix.target }})
+        run: |
+          cd kernel
+          BUILD_DIR="${{ runner.temp }}/kernel-${{ matrix.target }}"
+          OUTPUT_DIR="${{ runner.temp }}/output/kernel/${{ matrix.target }}"
+          
+          mkdir -p "$BUILD_DIR" "$OUTPUT_DIR"
+          
+          # Configure
+          make O="$BUILD_DIR" ARCH=${{ matrix.arch }} CROSS_COMPILE=${{ matrix.cross_compile }} ${{ matrix.defconfig }}
+          
+          # Build
+          make -j$(nproc) O="$BUILD_DIR" ARCH=${{ matrix.arch }} CROSS_COMPILE=${{ matrix.cross_compile }} \
+            ${{ matrix.kernel_image }} modules dtbs
+          
+          # Install modules
+          make O="$BUILD_DIR" ARCH=${{ matrix.arch }} CROSS_COMPILE=${{ matrix.cross_compile }} \
+            INSTALL_MOD_PATH="$OUTPUT_DIR/rootfs" modules_install
+          
+          # Copy artifacts
+          mkdir -p "$OUTPUT_DIR"
+          cp "$BUILD_DIR/${{ matrix.kernel_image }}" "$OUTPUT_DIR/"
+          for dtb in ${{ matrix.dtbs }}; do
+            cp "$BUILD_DIR/arch/${{ matrix.arch }}/boot/dts/$dtb" "$OUTPUT_DIR/" 2>/dev/null || true
+          done
+          
+          echo "KERNEL_OUTPUT_DIR=$OUTPUT_DIR" >> $GITHUB_ENV
+
+      - name: Create kernel package
+        run: |
+          cd ${{ env.KERNEL_OUTPUT_DIR }}
+          tar -czf "linux-image-meridian-${{ matrix.target }}_$(date +%Y%m%d)_${{ matrix.arch == 'arm' && 'armhf' || 'arm64' }}.tar.gz" \
+            $(basename ${{ matrix.kernel_image }}) \
+            *.dtb \
+            rootfs/lib/modules/
+          
+          echo "KERNEL_PACKAGE=$(pwd)/linux-image-meridian-${{ matrix.target }}_$(date +%Y%m%d)_${{ matrix.arch == 'arm' && 'armhf' || 'arm64' }}.tar.gz" >> $GITHUB_ENV
+
+      - name: Upload kernel artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-${{ matrix.target }}
+          path: |
+            ${{ env.KERNEL_OUTPUT_DIR }}/*.tar.gz
+            ${{ env.KERNEL_OUTPUT_DIR }}/$(basename ${{ matrix.kernel_image }})
+            ${{ env.KERNEL_OUTPUT_DIR }}/*.dtb
+            ${{ env.KERNEL_OUTPUT_DIR }}/rootfs/lib/modules/
+          retention-days: 30
+
+  build-uboot:
+    name: Build U-Boot (${{ matrix.device }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: build-kernel
+    strategy:
+      fail-fast: false
+      matrix:
+        device:
+          - n900
+          - n9
+        include:
+          - device: n900
+            defconfig: meridian_n900_defconfig
+            artifacts: "u-boot.img u-boot.bin MLO u-boot.scr"
+          - device: n9
+            defconfig: meridian_n9_defconfig
+            artifacts: "u-boot.img u-boot.bin u-boot.scr"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install U-Boot dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            bison \
+            flex \
+            libssl-dev \
+            device-tree-compiler \
+            u-boot-tools \
+            gcc-arm-linux-gnueabihf
+
+      - name: Build U-Boot (${{ matrix.device }})
+        run: |
+          cd bootloader/u-boot
+          BUILD_DIR="${{ runner.temp }}/u-boot-${{ matrix.device }}"
+          OUTPUT_DIR="${{ runner.temp }}/output/u-boot/${{ matrix.device }}"
+          
+          mkdir -p "$BUILD_DIR" "$OUTPUT_DIR"
+          
+          make O="$BUILD_DIR" ${{ matrix.defconfig }}
+          make -j$(nproc) O="$BUILD_DIR"
+          
+          for artifact in ${{ matrix.artifacts }}; do
+            cp "$BUILD_DIR/$artifact" "$OUTPUT_DIR/" 2>/dev/null || true
+          done
+          
+          echo "UBOOT_OUTPUT_DIR=$OUTPUT_DIR" >> $GITHUB_ENV
+
+      - name: Upload U-Boot artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: u-boot-${{ matrix.device }}
+          path: ${{ env.UBOOT_OUTPUT_DIR }}/*
+          retention-days: 30

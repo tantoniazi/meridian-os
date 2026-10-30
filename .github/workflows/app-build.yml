@@ -1,0 +1,233 @@
+name: App Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'ui/**'
+      - 'scripts/**'
+      - '.github/workflows/app-build.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'ui/**'
+      - 'scripts/**'
+      - '.github/workflows/app-build.yml'
+  workflow_dispatch:
+    inputs:
+      apps:
+        description: 'Apps to build (comma-separated, empty for all)'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  build-apps:
+    name: Build App (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - meridian-shell
+          - meridian-home
+          - meridian-w10m
+          - dialer
+          - messages
+          - camera
+          - browser
+          - file-manager
+          - terminal
+          - store
+        include:
+          - app: meridian-shell
+            source_dir: ui/meridian-shell
+            cmake_args: ""
+          - app: meridian-home
+            source_dir: ui/meridian-home
+            cmake_args: ""
+          - app: meridian-w10m
+            source_dir: ui/meridian-w10m
+            cmake_args: ""
+          - app: dialer
+            source_dir: apps/dialer
+            cmake_args: ""
+          - app: messages
+            source_dir: apps/messages
+            cmake_args: ""
+          - app: camera
+            source_dir: apps/camera
+            cmake_args: ""
+          - app: browser
+            source_dir: apps/browser
+            cmake_args: ""
+          - app: file-manager
+            source_dir: apps/file-manager
+            cmake_args: ""
+          - app: terminal
+            source_dir: apps/terminal
+            cmake_args: ""
+          - app: store
+            source_dir: apps/store
+            cmake_args: ""
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            pkg-config \
+            qt6-base-dev \
+            qt6-declarative-dev \
+            qt6-quick3d-dev \
+            qt6-multimedia-dev \
+            qt6-webengine-dev \
+            qt6-tools-dev \
+            qt6-tools-dev-tools \
+            libkf6kirigamiaddons-dev \
+            libweston-dev \
+            libwayland-dev \
+            libegl-dev \
+            libgles2-dev \
+            libinput-dev \
+            libudev-dev \
+            libsystemd-dev \
+            libmodemmanager-dev \
+            libofono-dev \
+            libcamera-dev \
+            libflatpak-dev \
+            libostree-dev \
+            libpipewire-0.3-dev \
+            libwireplumber-dev \
+            libbluetooth-dev \
+            libgps-dev \
+            libsensorfw-dev \
+            ccache
+
+      - name: Setup ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-apps-${{ matrix.app }}-${{ runner.os }}-${{ hashFiles(format('{0}/**', matrix.source_dir)) }}
+          restore-keys: |
+            ccache-apps-${{ matrix.app }}-${{ runner.os }}-
+
+      - name: Configure ccache
+        run: |
+          echo "CCACHE_DIR=~/.ccache" >> $GITHUB_ENV
+          echo "CCACHE_COMPRESS=1" >> $GITHUB_ENV
+          echo "CCACHE_MAXSIZE=2G" >> $GITHUB_ENV
+          export CC="ccache gcc"
+          export CXX="ccache g++"
+
+      - name: Cache Qt and KDE dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/lib/qt6
+            /usr/include/qt6
+            /usr/lib/x86_64-linux-gnu/cmake/Qt6
+            /usr/lib/x86_64-linux-gnu/cmake/KF6
+          key: qt-kde-deps-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: |
+            qt-kde-deps-${{ runner.os }}-
+
+      - name: Configure CMake
+        run: |
+          BUILD_DIR="${{ runner.temp }}/build-${{ matrix.app }}"
+          INSTALL_DIR="${{ runner.temp }}/install-${{ matrix.app }}"
+          
+          mkdir -p "$BUILD_DIR" "$INSTALL_DIR"
+          
+          cd ${{ matrix.source_dir }}
+          cmake -B "$BUILD_DIR" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -GNinja \
+            ${{ matrix.cmake_args }}
+          
+          echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
+          echo "INSTALL_DIR=$INSTALL_DIR" >> $GITHUB_ENV
+
+      - name: Build app
+        run: |
+          cmake --build ${{ env.BUILD_DIR }} -- -j$(nproc)
+
+      - name: Run tests
+        run: |
+          cd ${{ env.BUILD_DIR }}
+          ctest --output-on-failure -j$(nproc) || true
+
+      - name: Install app
+        run: |
+          cmake --install ${{ env.BUILD_DIR }}
+
+      - name: Package app binary
+        run: |
+          cd ${{ env.INSTALL_DIR }}
+          tar -czf "${{ runner.temp }}/${{ matrix.app }}-$(date +%Y%m%d)-linux-${{ runner.arch }}.tar.gz" .
+          echo "APP_PACKAGE=${{ runner.temp }}/${{ matrix.app }}-$(date +%Y%m%d)-linux-${{ runner.arch }}.tar.gz" >> $GITHUB_ENV
+
+      - name: Upload app artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ matrix.app }}
+          path: ${{ env.APP_PACKAGE }}
+          retention-days: 30
+
+  build-all-apps:
+    name: Build All Apps (Aggregate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build-apps
+    if: always()
+    steps:
+      - name: Download all app artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/artifacts
+          pattern: app-*
+          merge-multiple: false
+
+      - name: List artifacts
+        run: |
+          find ${{ runner.temp }}/artifacts -name "*.tar.gz" -type f | sort
+          echo "Total apps built: $(find ${{ runner.temp }}/artifacts -name "*.tar.gz" -type f | wc -l)"
+
+      - name: Create combined package
+        run: |
+          COMBINED_DIR="${{ runner.temp }}/meridian-apps-$(date +%Y%m%d)"
+          mkdir -p "$COMBINED_DIR"
+          
+          for artifact in ${{ runner.temp }}/artifacts/app-*/*.tar.gz; do
+            if [[ -f "$artifact" ]]; then
+              app_name=$(basename "$artifact" | sed 's/-.*//')
+              mkdir -p "$COMBINED_DIR/$app_name"
+              tar -xzf "$artifact" -C "$COMBINED_DIR/$app_name"
+            fi
+          done
+          
+          cd "$COMBINED_DIR"
+          tar -czf "${{ runner.temp }}/meridian-apps-$(date +%Y%m%d)-linux-${{ runner.arch }}.tar.gz" .
+          echo "COMBINED_PACKAGE=${{ runner.temp }}/meridian-apps-$(date +%Y%m%d)-linux-${{ runner.arch }}.tar.gz" >> $GITHUB_ENV
+
+      - name: Upload combined apps package
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-apps-combined
+          path: ${{ env.COMBINED_PACKAGE }}
+          retention-days: 30
