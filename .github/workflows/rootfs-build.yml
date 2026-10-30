@@ -87,25 +87,14 @@ jobs:
           
           mkdir -p "$ROOTFS_DIR" "$OSTREE_REPO"
           
-          # Meridian-specific packages
-          MERIDIAN_PACKAGES=(
-            "meridian-base"
-            "meridian-kernel-omap3"
-            "meridian-shell"
-            "meridian-home"
-            "meridian-w10m"
-            "meridian-settings"
-            "meridian-dialer"
-            "meridian-messages"
-            "meridian-contacts"
-            "meridian-camera"
-            "meridian-browser"
-            "meridian-file-manager"
-            "meridian-terminal"
-            "meridian-store"
+          # CI validation: use base Debian packages only
+          # Custom Meridian packages (meridian-*) require local package repository
+          # which is built separately and hosted at packages.meridian-os.org
+          BASE_PACKAGES=(
             "flatpak"
             "ostree"
             "systemd"
+            "systemd-sysv"
             "pipewire"
             "wireplumber"
             "modemmanager"
@@ -128,11 +117,16 @@ jobs:
             "gtk4"
             "libadwaita-1"
             "xwayland"
+            "u-boot-tools"
+            "flash-kernel"
+            "mtd-utils"
+            "mtd-utils-ubifs"
           )
           
-          PKG_LIST="${MERIDIAN_PACKAGES[*]}"
+          PKG_LIST="${BASE_PACKAGES[*]}"
           
-          echo "Creating rootfs using mmdebstrap..."
+          echo "Creating rootfs using mmdebstrap (base packages only)..."
+          echo "Note: Custom Meridian packages (meridian-*) require local package repository"
           sudo mmdebstrap \
             --architectures="$ARCH" \
             --variant="$VARIANT" \
