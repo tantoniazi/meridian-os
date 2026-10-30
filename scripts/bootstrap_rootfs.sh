@@ -77,7 +77,7 @@ error() {
 # Check if running as root
 if [[ $EUID -ne 0 ]]; then
     error "This script must be run as root"
-done
+fi
 
 # Check dependencies
 check_deps() {
