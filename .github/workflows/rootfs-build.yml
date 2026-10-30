@@ -217,19 +217,7 @@ jobs:
           fi
           
           # Create boot script for N900
-          cat > "$BOOT_DIR/boot.scr" << 'EOF'
-    setenv fdtfile omap3-n900.dtb
-    setenv overlays "n900-keyboard n900-tvout"
-    setenv bootargs "console=ttyO2,115200 root=OSTREE=/ostree/deploy/meridian.ostree/0 ro quiet splash plymouth.ignore-serial-consoles"
-    load mmc 0:1 ${kernel_addr_r} /ostree/boot.1/vmlinuz
-    load mmc 0:1 ${ramdisk_addr_r} /ostree/boot.1/initrd.img
-    load mmc 0:1 ${fdt_addr_r} /ostree/boot.1/dtb
-    for overlay in ${overlays}; do
-        load mmc 0:1 ${fdt_addr_r} /ostree/boot.1/overlays/${overlay}.dtbo
-        fdt apply ${fdt_addr_r}
-    done
-    bootz ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r}
-    EOF
+          printf 'setenv fdtfile omap3-n900.dtb\nsetenv overlays "n900-keyboard n900-tvout"\nsetenv bootargs "console=ttyO2,115200 root=OSTREE=/ostree/deploy/meridian.ostree/0 ro quiet splash plymouth.ignore-serial-consoles"\nload mmc 0:1 ${kernel_addr_r} /ostree/boot.1/vmlinuz\nload mmc 0:1 ${ramdisk_addr_r} /ostree/boot.1/initrd.img\nload mmc 0:1 ${fdt_addr_r} /ostree/boot.1/dtb\nfor overlay in ${overlays}; do\n    load mmc 0:1 ${fdt_addr_r} /ostree/boot.1/overlays/${overlay}.dtbo\n    fdt apply ${fdt_addr_r}\ndone\nbootz ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r}\n' > "$BOOT_DIR/boot.scr"
           
           # Compile boot script
           mkimage -A arm -O linux -T script -C none -n "Meridian Boot Script" -d "$BOOT_DIR/boot.scr" "$BOOT_DIR/boot.scr.uimg"
