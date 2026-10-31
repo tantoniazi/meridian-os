@@ -50,13 +50,13 @@ jobs:
             cross_compile: aarch64-linux-gnu-
             defconfig: meridian-sunxi_defconfig
             dtbs: "sun50i-a64-pinephone.dtb sun50i-a64-pinephone-1.2.dtb"
-            kernel_image: arch/arm64/boot/Image
+            kernel_image: arch/arm64/boot/Image.gz
           - target: imx8
             arch: arm64
             cross_compile: aarch64-linux-gnu-
             defconfig: meridian-imx8_defconfig
             dtbs: "fsl-imx8mq-librem5.dtb fsl-imx8mq-librem5-devkit.dtb"
-            kernel_image: arch/arm64/boot/Image
+            kernel_image: arch/arm64/boot/Image.gz
 
     steps:
       - name: Checkout repository
@@ -101,8 +101,7 @@ jobs:
 
       - name: Clone Linux kernel source
         run: |
-          KERNEL_VERSION="6.6"
-          git clone --depth=1 --branch v${KERNEL_VERSION} https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git ${{ runner.temp }}/linux-source
+          git clone --depth=1 --branch linux-6.6.y https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git ${{ runner.temp }}/linux-source
           echo "KERNEL_SOURCE=${{ runner.temp }}/linux-source" >> $GITHUB_ENV
 
       - name: Copy config and patches to kernel source
