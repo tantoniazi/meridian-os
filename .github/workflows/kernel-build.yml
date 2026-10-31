@@ -241,9 +241,18 @@ jobs:
             u-boot-tools \
             gcc-arm-linux-gnueabihf
 
+      - name: Clone U-Boot source
+        run: |
+          git clone --depth=1 --branch v2025.10 https://git.denx.de/u-boot.git ${{ runner.temp }}/u-boot-source
+          echo "UBOOT_SOURCE=${{ runner.temp }}/u-boot-source" >> $GITHUB_ENV
+
+      - name: Copy defconfigs to U-Boot source
+        run: |
+          cp bootloader/u-boot/configs/${{ matrix.defconfig }} ${{ env.UBOOT_SOURCE }}/configs/
+
       - name: Build U-Boot (${{ matrix.device }})
         run: |
-          cd bootloader/u-boot
+          cd ${{ env.UBOOT_SOURCE }}
           BUILD_DIR="${{ runner.temp }}/u-boot-${{ matrix.device }}"
           OUTPUT_DIR="${{ runner.temp }}/output/u-boot/${{ matrix.device }}"
           
