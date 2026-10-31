@@ -148,8 +148,19 @@ jobs:
           # Copy artifacts
           mkdir -p "$OUTPUT_DIR"
           cp "$BUILD_DIR/${{ matrix.kernel_image }}" "$OUTPUT_DIR/"
+          # Copy DTB files - try multiple possible locations
           for dtb in ${{ matrix.dtbs }}; do
-            cp "$BUILD_DIR/arch/${{ matrix.arch }}/boot/dts/$dtb" "$OUTPUT_DIR/" 2>/dev/null || true
+            if [[ -f "$BUILD_DIR/arch/${{ matrix.arch }}/boot/dts/$dtb" ]]; then
+              cp "$BUILD_DIR/arch/${{ matrix.arch }}/boot/dts/$dtb" "$OUTPUT_DIR/"
+            elif [[ -f "$BUILD_DIR/arch/${{ matrix.arch }}/boot/dts/omap3/$dtb" ]]; then
+              cp "$BUILD_DIR/arch/${{ matrix.arch }}/boot/dts/omap3/$dtb" "$OUTPUT_DIR/"
+            elif [[ -f "$BUILD_DIR/arch/${{ matrix.arch }}/boot/dts/sun50i/$dtb" ]]; then
+              cp "$BUILD_DIR/arch/${{ matrix.arch }}/boot/dts/sun50i/$dtb" "$OUTPUT_DIR/"
+            elif [[ -f "$BUILD_DIR/arch/${{ matrix.arch }}/boot/dts/fsl/$dtb" ]]; then
+              cp "$BUILD_DIR/arch/${{ matrix.arch }}/boot/dts/fsl/$dtb" "$OUTPUT_DIR/"
+            else
+              echo "Warning: DTB $dtb not found in any expected location" >&2
+            fi
           done
           
           echo "KERNEL_OUTPUT_DIR=$OUTPUT_DIR" >> $GITHUB_ENV
@@ -157,10 +168,20 @@ jobs:
       - name: Create kernel package
         run: |
           cd ${{ env.KERNEL_OUTPUT_DIR }}
-          tar -czf "linux-image-meridian-${{ matrix.target }}_$(date +%Y%m%d)_${{ matrix.arch == 'arm' && 'armhf' || 'arm64' }}.tar.gz" \
-            $(basename ${{ matrix.kernel_image }}) \
-            *.dtb \
-            rootfs/lib/modules/
+          # Create file list for tar (only include files that exist)
+          FILES=()
+          [[ -f "$(basename ${{ matrix.kernel_image }})" ]] && FILES+=("$(basename ${{ matrix.kernel_image }})")
+          for dtb in *.dtb; do
+            [[ -f "$dtb" ]] && FILES+=("$dtb")
+          done
+          [[ -d "rootfs/lib/modules" ]] && FILES+=("rootfs/lib/modules/")
+          
+          if [[ ${#FILES[@]} -gt 0 ]]; then
+            tar -czf "linux-image-meridian-${{ matrix.target }}_$(date +%Y%m%d)_${{ matrix.arch == 'arm' && 'armhf' || 'arm64' }}.tar.gz" "${FILES[@]}"
+          else
+            echo "Warning: No files to package!"
+            exit 1
+          fi
           
           echo "KERNEL_PACKAGE=$(pwd)/linux-image-meridian-${{ matrix.target }}_$(date +%Y%m%d)_${{ matrix.arch == 'arm' && 'armhf' || 'arm64' }}.tar.gz" >> $GITHUB_ENV
 
