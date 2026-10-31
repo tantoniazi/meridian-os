@@ -137,9 +137,16 @@ jobs:
           # Configure
           make O="$BUILD_DIR" ARCH=${{ matrix.arch }} CROSS_COMPILE=${{ matrix.cross_compile }} ${{ matrix.defconfig }}
           
-          # Build
-          make -j$(nproc) O="$BUILD_DIR" ARCH=${{ matrix.arch }} CROSS_COMPILE=${{ matrix.cross_compile }} \
-            ${{ matrix.kernel_image }} modules dtbs
+          # Build - use specific target to avoid kernel Makefile bug with compressed images
+          if [[ "${{ matrix.arch }}" == "arm64" ]]; then
+            # ARM64: build only Image to avoid kernel Makefile bug with Image.gz duplicated path
+            make -j$(nproc) O="$BUILD_DIR" ARCH=${{ matrix.arch }} CROSS_COMPILE=${{ matrix.cross_compile }} \
+              Image modules dtbs
+          else
+            # ARM: build zImage as usual
+            make -j$(nproc) O="$BUILD_DIR" ARCH=${{ matrix.arch }} CROSS_COMPILE=${{ matrix.cross_compile }} \
+              ${{ matrix.kernel_image }} modules dtbs
+          fi
           
           # Install modules
           make O="$BUILD_DIR" ARCH=${{ matrix.arch }} CROSS_COMPILE=${{ matrix.cross_compile }} \
