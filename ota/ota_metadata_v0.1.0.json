@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-02T00:00:00Z",
+  "channel": "nightly",
+  "devices": {
+    "n900": {
+      "codename": "n900",
+      "commercial_name": "Nokia N900",
+      "variant": "RX-51",
+      "architecture": "armhf",
+      "version": "v0.1.0",
+      "base": "Debian trixie + OSTree",
+      "kernel": "Linux 6.6 LTS + OMAP3 patches",
+      "ostree_branch": "meridian/phone-n900",
+      "ota_package": "https://github.com/meridian-mobile-os/meridian-mobile-os/releases/download/meridian-n900-v0.1.0/meridian-n900-v0.1.0-sd.img",
+      "ota_package_size": 0,
+      "checksums": "https://github.com/meridian-mobile-os/meridian-mobile-os/releases/download/meridian-n900-v0.1.0/SHA256SUMS-v0.1.0-n900.txt",
+      "signature": "https://github.com/meridian-mobile-os/meridian-mobile-os/releases/download/meridian-n900-v0.1.0/SHA256SUMS-v0.1.0-n900.txt.asc",
+      "min_ram_mb": 256,
+      "min_storage_gb": 8,
+      "notes": "Primeira release instalável. Flash via cartão SD com dd. Validação física pendente.",
+      "rollback_supported": false,
+      "avb_enabled": false
+    },
+    "n9": {
+      "codename": "n9",
+      "commercial_name": "Nokia N9",
+      "variant": "RM-696 (Lankku)",
+      "architecture": "armhf",
+      "version": "v0.1.0",
+      "base": "Debian trixie + OSTree",
+      "kernel": "Linux 6.6 LTS + OMAP3 patches",
+      "ostree_branch": "meridian/phone-n9",
+      "ota_package": "https://github.com/meridian-mobile-os/meridian-mobile-os/releases/download/meridian-n9-v0.1.0/meridian-n9-v0.1.0-sd.img",
+      "ota_package_size": 0,
+      "checksums": "https://github.com/meridian-mobile-os/meridian-mobile-os/releases/download/meridian-n9-v0.1.0/SHA256SUMS-v0.1.0-n9.txt",
+      "signature": "https://github.com/meridian-mobile-os/meridian-mobile-os/releases/download/meridian-n9-v0.1.0/SHA256SUMS-v0.1.0-n9.txt.asc",
+      "min_ram_mb": 1024,
+      "min_storage_gb": 16,
+      "notes": "Primeira release instalável. Compartilha build com N950. Validação física pendente.",
+      "rollback_supported": false,
+      "avb_enabled": false
+    },
+    "n950": {
+      "codename": "n950",
+      "commercial_name": "Nokia N950",
+      "variant": "RM-680",
+      "architecture": "armhf",
+      "version": "v0.1.0",
+      "base": "Debian trixie + OSTree",
+      "kernel": "Linux 6.6 LTS + OMAP3 patches",
+      "ostree_branch": "meridian/phone-n9",
+      "ota_package": "https://github.com/meridian-mobile-os/meridian-mobile-os/releases/download/meridian-n9-v0.1.0/meridian-n9-v0.1.0-sd.img",
+      "ota_package_size": 0,
+      "checksums": "https://github.com/meridian-mobile-os/meridian-mobile-os/releases/download/meridian-n9-v0.1.0/SHA256SUMS-v0.1.0-n9.txt",
+      "signature": "https://github.com/meridian-mobile-os/meridian-mobile-os/releases/download/meridian-n9-v0.1.0/SHA256SUMS-v0.1.0-n9.txt.asc",
+      "min_ram_mb": 1024,
+      "min_storage_gb": 64,
+      "notes": "Compartilha build do N9 (N950 não tem KAS dedicado). Validação física pendente.",
+      "rollback_supported": false,
+      "avb_enabled": false
+    }
+  },
+  "lumia730": {
+    "codename": "lumia730",
+    "commercial_name": "Nokia Lumia 730 / 735",
+    "variant": "RM-914 / RM-915 (eagle)",
+    "architecture": "armv7 (32-bit)",
+    "status": "BLOCKED",
+    "reason": "ARMv7 32-bit incompatível com ARMv8 requerido; bootloader permanentemente locked; sem kernel source; sem vendor blobs; RAM 1 GB insuficiente; armazenamento 8 GB insuficiente",
+    "notes": "Não há versão instalável. Ver docs/lumia-730/RELEASE_BLOCKER.md e GATE_M0_M1_PLAN.md."
+  },
+  "security": {
+    "avb_version": "v2",
+    "signing_key": "dev-key (offline, assinatura manual pendente)",
+    "anti_rollback": false,
+    "seLinux": "permissive (dev)"
+  },
+  "support": {
+    "website": "https://meridian-mobile-os.github.io",
+    "issues": "https://github.com/meridian-mobile-os/meridian-mobile-os/issues",
+    "docs": "https://meridian-mobile-os.github.io/docs"
+  }
+}
